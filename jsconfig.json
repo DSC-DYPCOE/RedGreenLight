@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
+    "baseUrl": ".", // Sets the base path for module resolution
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"] // Maps the alias `@/` to the root directory
     }
   }
 }
