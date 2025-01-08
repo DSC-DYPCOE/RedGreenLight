@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Keyboard, Play, Trophy, Users, Book, AlertCircle, Type } from 'lucide-react';
-
+import Background from "../components/ui/Background";
 const Home = () => {
   const [isHoveringDemo, setIsHoveringDemo] = useState(false);
   const [demoLight, setDemoLight] = useState('green');
@@ -68,126 +68,7 @@ const Home = () => {
       className="min-h-screen relative bg-black text-white overflow-hidden"
     >
       {/* Enhanced Background Elements */}
-      <div className="fixed inset-0 z-0">
-        {/* Geometric Shapes */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="grid grid-cols-3 gap-4 p-4 h-full">
-            {[...Array(12)].map((_, i) => (
-              <motion.div
-                key={i}
-                animate={{
-                  scale: [1, 1.1, 1],
-                  rotate: [0, 360, 0],
-                }}
-                transition={{
-                  duration: 10,
-                  repeat: Infinity,
-                  delay: i * 0.5,
-                }}
-                className="border-2 border-pink-500 rounded-full aspect-square"
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Floating Triangle Symbols */}
-        <div className="absolute inset-0">
-          {[...Array(6)].map((_, i) => (
-            <motion.div
-              key={`triangle-${i}`}
-              initial={{ opacity: 0.1 }}
-              animate={{
-                y: [-20, -40, -20],
-                x: [0, 20, 0],
-                rotate: [0, 360, 0],
-                opacity: [0.1, 0.2, 0.1]
-              }}
-              transition={{
-                duration: 15,
-                repeat: Infinity,
-                delay: i * 2,
-              }}
-              className="absolute"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-            >
-              <div className="w-12 h-12 border-2 border-pink-500"
-                   style={{
-                     clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)'
-                   }} />
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Circle Grid Pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="grid grid-cols-8 gap-8 p-8 h-full">
-            {[...Array(64)].map((_, i) => (
-              <motion.div
-                key={`circle-${i}`}
-                animate={{
-                  scale: [1, 1.2, 1],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  delay: i * 0.1,
-                }}
-                className="rounded-full aspect-square border border-pink-500"
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Hexagonal Pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <svg width="100%" height="100%" className="absolute inset-0">
-            <pattern
-              id="hexagonPattern"
-              x="0"
-              y="0"
-              width="50"
-              height="88"
-              patternUnits="userSpaceOnUse"
-              viewBox="0 0 50 88"
-            >
-              <path
-                d="M25 0 L50 14.43 L50 43.28 L25 57.71 L0 43.28 L0 14.43 Z"
-                fill="none"
-                stroke="#ec4899"
-                strokeWidth="0.5"
-              />
-            </pattern>
-            <rect x="0" y="0" width="100%" height="100%" fill="url(#hexagonPattern)" />
-          </svg>
-        </div>
-
-        {/* Glowing Orbs */}
-        {[...Array(5)].map((_, i) => (
-          <motion.div
-            key={`orb-${i}`}
-            className="absolute rounded-full opacity-20 blur-xl"
-            style={{
-              background: 'radial-gradient(circle, rgba(236,72,153,0.3) 0%, rgba(236,72,153,0) 70%)',
-              width: '200px',
-              height: '200px',
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              scale: [1, 1.5, 1],
-              opacity: [0.2, 0.3, 0.2],
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              delay: i * 1.5,
-            }}
-          />
-        ))}
-      </div>
+      <Background />
 
       {/* Main Content */}
       <div className="relative z-10">
@@ -252,7 +133,7 @@ const Home = () => {
                          flex items-center gap-2"
               >
                 <Book className="w-6 h-6" />
-                Game Rules
+                Start
               </motion.button>
             </motion.div>
           </motion.div>
@@ -314,7 +195,7 @@ const Home = () => {
               {
                 icon: Keyboard,
                 title: "Elite Games",
-                description: "Join 456 players in the ultimate typing challenge"
+                description: "Join with players in the ultimate typing challenge"
               },
               {
                 icon: Trophy,
@@ -362,7 +243,7 @@ const Home = () => {
             <div className="flex justify-around items-center text-center">
               {[
                 { value: "456", label: "Players Remaining" },
-                { value: "₩45.6B", label: "Grand Prize" },
+                { value: "Rs?", label: "Grand Prize" },
                 { value: "001", label: "Next Player" }
               ].map((stat, index) => (
                 <motion.div
