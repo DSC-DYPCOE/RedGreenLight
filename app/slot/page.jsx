@@ -36,7 +36,7 @@ const SlotCard = ({ slot }) => {
       >
         <Card className="mb-4">
           <CardContent className="flex items-center justify-between p-4">
-            <Link href={`/slot/${slot.slotId}`}>
+            <Link href={`/slot/${slot.slotId}`} as={`/slots/${slot.slotId}`}>
               <h3 className="text-lg font-semibold">Slot ID: {slot.slotId}</h3>
               <p className="text-gray-600">Start Time: {slot.startTime}</p>
               <p className="text-gray-600">End Time: {slot.endTime}</p>

@@ -1,19 +1,22 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect,use } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Link from "next/link"
 import axios from "axios";
 
-export default function AdminDashboard() {
+export default function AdminDashboard({params}) {
   const [players, setPlayers] = useState("");
   const [password, setPassword] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [slots, setSlots] = useState([]);
+
+  const {id} = use(params);
 
   // Fetch all slots on component mount
   useEffect(() => {
@@ -137,6 +140,7 @@ export default function AdminDashboard() {
                 <th className="border px-4 py-2">Password</th>
                 <th className="border px-4 py-2">Start Time</th>
                 <th className="border px-4 py-2">End Time</th>
+                <th className="border px-4 py-2">View</th>
               </tr>
             </thead>
             <tbody>
@@ -147,6 +151,14 @@ export default function AdminDashboard() {
                   <td className="border px-4 py-2">{slot.password}</td>
                   <td className="border px-4 py-2">{slot.startTime}</td>
                   <td className="border px-4 py-2">{slot.endTime}</td>
+                  <td className="border px-4 py-2">
+                    <Link
+                      href={`/admin/slot/${slot.slotId}`}
+                      className="text-blue-500 hover:underline"
+                    >
+                      View
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

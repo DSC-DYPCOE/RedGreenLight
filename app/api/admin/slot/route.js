@@ -41,9 +41,18 @@ export async function PATCH(req) {
     }
 
     // Check if the user already exists in the leaderboard
-       // Add a new user to the leaderboard
+    const existingUser = slot.leaderboard.find(
+      (entry) => entry.username === username
+    );
+
+    if (existingUser) {
+      // Update existing user's score if found
+      existingUser.score = score;
+    } else {
+      // Add a new user to the leaderboard
       slot.leaderboard.push({ username, score });
-   
+    }
+
     // Sort the leaderboard by score in descending order
     slot.leaderboard.sort((a, b) => b.score - a.score);
 
@@ -84,7 +93,7 @@ export async function GET_SLOT(req, params) {
     }
     return NextResponse.json({ slot }, { status: 200 });
   } catch (error) {
-    console.log("Error fetching particular slot:", error);
+    console.error("Error fetching particular slot:", error);
     return NextResponse.json(
       { error: "Failed to fetch the slot. Please try again." },
       { status: 500 }
