@@ -29,6 +29,8 @@ export async function POST(req) {
 
 export async function PATCH(req) {
   try {
+    dbConnect();
+
     const { slotId, username, score } = await req.json();
 
     // Find the slot by slotId
@@ -66,6 +68,7 @@ export async function PATCH(req) {
 
 export async function GET(req) {
     try {
+        dbConnect();
       const slots = await Slot.find({});
       return NextResponse.json({ slots }, { status: 200 });
     } catch (error) {
