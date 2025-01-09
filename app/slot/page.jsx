@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import moment from 'moment';
-
+import Link from "next/link"
 const statusColors = {
   completed: 'bg-gray-500',
   upcoming: 'bg-blue-500',
@@ -14,41 +14,43 @@ const statusColors = {
 }
 
 const SlotCard = ({ slot }) => {
-  const calculateStatus = () => {
-    const currentTime = moment(); // Current time
-    const slotTime = moment(slot.time, 'HH:mm'); // Parsing slot time in HH:mm format
-
-    if (slotTime.isBefore(currentTime)) {
-      return 'completed';
-    } else if (slotTime.isSameOrAfter(currentTime)) {
-      return 'upcoming';
-    } else if (slotTime.isBetween(currentTime.clone().subtract(5, 'minutes'), currentTime.clone().add(5, 'minutes'))) {
-      return 'live';
-    }
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Card className="mb-4">
-        <CardContent className="flex items-center justify-between p-4">
-          <Link href={`/slot/${slot.slotId}`}>
-            <h3 className="text-lg font-semibold">Slot ID: {slot.slotId}</h3>
-            <p className="text-gray-600">Time: {slot.time}</p>
-            <p className="text-gray-600">Players: {slot.numberOfPlayers}</p>
-          </Link>
-          <Badge className={`${statusColors[calculateStatus()]} text-white`}>
-            {calculateStatus().charAt(0).toUpperCase() + calculateStatus().slice(1)}
-          </Badge>
-        </CardContent>
-      </Card>
-    </motion.div>
-  )
-}
-
+    const calculateStatus = () => {
+      const currentTime = moment(); // Current time
+      const startTime = moment(slot.startTime, 'HH:mm'); // Parsing start time in HH:mm format
+      const endTime = moment(slot.endTime, 'HH:mm'); // Parsing end time in HH:mm format
+  
+      if (currentTime.isBefore(startTime)) {
+        return 'upcoming';
+      } else if (currentTime.isBetween(startTime, endTime)) {
+        return 'live';
+      } else if (currentTime.isAfter(endTime)) {
+        return 'completed';
+      }
+    };
+  
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card className="mb-4">
+          <CardContent className="flex items-center justify-between p-4">
+            <Link href={`/slot/${slot.slotId}`}>
+              <h3 className="text-lg font-semibold">Slot ID: {slot.slotId}</h3>
+              <p className="text-gray-600">Start Time: {slot.startTime}</p>
+              <p className="text-gray-600">End Time: {slot.endTime}</p>
+              <p className="text-gray-600">Players: {slot.numberOfPlayers}</p>
+            </Link>
+            <Badge className={`${statusColors[calculateStatus()]} text-white`}>
+              {calculateStatus().charAt(0).toUpperCase() + calculateStatus().slice(1)}
+            </Badge>
+          </CardContent>
+        </Card>
+      </motion.div>
+    )
+  }
+  
 export default function SlotCardsList() {
   const [slots, setSlots] = useState([]);
 

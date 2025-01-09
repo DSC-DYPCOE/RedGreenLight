@@ -6,11 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import axios from "axios";
 
 export default function AdminDashboard() {
-  const [time, setTime] = useState("");
   const [players, setPlayers] = useState("");
   const [password, setPassword] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [slots, setSlots] = useState([]);
 
   // Fetch all slots on component mount
@@ -21,10 +23,9 @@ export default function AdminDashboard() {
   // Fetch slots from the API
   const fetchSlots = async () => {
     try {
-      const response = await fetch("/api/admin/slot", { method: "GET" });
-      if (response.ok) {
-        const data = await response.json();
-        setSlots(data.slots);
+      const response = await axios.get("/api/admin/slot");
+      if (response.status === 200) {
+        setSlots(response.data.slots);
       } else {
         console.log("Failed to fetch slots");
       }
@@ -38,13 +39,14 @@ export default function AdminDashboard() {
     e.preventDefault();
 
     try {
-      const response = await fetch("/api/admin/slot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ time, players, password }),
+      const response = await axios.post("/api/admin/slot", {
+        players,
+        password,
+        startTime,
+        endTime,
       });
 
-      if (response.ok) {
+      if (response.status === 201) {
         console.log("Slot created successfully");
         fetchSlots(); // Refresh the slot list
       } else {
@@ -63,17 +65,6 @@ export default function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="time">Time Slot</Label>
-              <Input
-                id="time"
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                required
-              />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="players">Number of Players</Label>
               <Input
@@ -99,6 +90,28 @@ export default function AdminDashboard() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="startTime">Start Time</Label>
+              <Input
+                id="startTime"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="endTime">End Time</Label>
+              <Input
+                id="endTime"
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                required
+              />
+            </div>
+
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -120,18 +133,20 @@ export default function AdminDashboard() {
             <thead>
               <tr>
                 <th className="border px-4 py-2">Slot ID</th>
-                <th className="border px-4 py-2">Time</th>
                 <th className="border px-4 py-2">Players</th>
                 <th className="border px-4 py-2">Password</th>
+                <th className="border px-4 py-2">Start Time</th>
+                <th className="border px-4 py-2">End Time</th>
               </tr>
             </thead>
             <tbody>
               {slots.map((slot) => (
                 <tr key={slot.slotId}>
                   <td className="border px-4 py-2">{slot.slotId}</td>
-                  <td className="border px-4 py-2">{slot.time}</td>
                   <td className="border px-4 py-2">{slot.players}</td>
                   <td className="border px-4 py-2">{slot.password}</td>
+                  <td className="border px-4 py-2">{slot.startTime}</td>
+                  <td className="border px-4 py-2">{slot.endTime}</td>
                 </tr>
               ))}
             </tbody>

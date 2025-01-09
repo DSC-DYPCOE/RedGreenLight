@@ -5,12 +5,13 @@ import dbConnect  from "@/lib/db.js";
 export async function POST(req) {
   try {
     dbConnect();
-    const { time, players, password } = await req.json();
+    const { startTime, endTime, players, password } = await req.json();
 
     // Create a new slot with a unique slotId
     const slot = await Slot.create({
       slotId: Date.now(),
-      time,
+      startTime,
+      endTime,
       players,
       password,
     });
@@ -19,7 +20,7 @@ export async function POST(req) {
     return NextResponse.json(slot, { status: 201 });
   } catch (error) {
     // Handle errors and return a proper error message
-    console.log(error)
+    console.log(error);
     return NextResponse.json(
       { error: "Failed to create slot. Please try again." },
       { status: 500 }
@@ -40,12 +41,9 @@ export async function PATCH(req) {
     }
 
     // Check if the user already exists in the leaderboard
-    const existingUser = slot.leaderboard.find(
-      (entry) => entry.username === username
-    );
-
-    slot.leaderboard.push({ username, score });
-
+       // Add a new user to the leaderboard
+      slot.leaderboard.push({ username, score });
+   
     // Sort the leaderboard by score in descending order
     slot.leaderboard.sort((a, b) => b.score - a.score);
 
@@ -67,11 +65,29 @@ export async function PATCH(req) {
 }
 
 export async function GET(req) {
-    try {
-        dbConnect();
-      const slots = await Slot.find({});
-      return NextResponse.json({ slots }, { status: 200 });
-    } catch (error) {
-      return NextResponse.json({ error: "Failed to fetch slots" }, { status: 500 });
-    }
+  try {
+    dbConnect();
+    const slots = await Slot.find({});
+    return NextResponse.json({ slots }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to fetch slots" }, { status: 500 });
   }
+}
+
+export async function GET_SLOT(req, params) {
+  try {
+    dbConnect();
+    const { slotId } = params;
+    const slot = await Slot.findOne({ slotId });
+    if (!slot) {
+      return NextResponse.json({ error: "Slot not found" }, { status: 404 });
+    }
+    return NextResponse.json({ slot }, { status: 200 });
+  } catch (error) {
+    console.log("Error fetching particular slot:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch the slot. Please try again." },
+      { status: 500 }
+    );
+  }
+}
