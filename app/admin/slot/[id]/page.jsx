@@ -3,40 +3,71 @@
 import { useState, useEffect,use } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { io } from "socket.io-client";
 import axios from "axios";
+
+const socket = io("http://localhost:3000"); // Connect to your socket server
 
 export default function SlotInfo({ params }) {
   const [slot, setSlot] = useState({});
   const [leaderboard, setLeaderboard] = useState([]);
   const [isGreen, setIsGreen] = useState(false);
-  const { id } = use(params);
+  const { id } = use(params); // Slot ID
 
   useEffect(() => {
-    // Fetch information for a particular slot
+    // Request initial light state and set up listeners
+    socket.emit("request-light-state", { slotId: id });
+
+    socket.on("light-state", (data) => {
+      if (data.slotId === id) {
+        setIsGreen(data.isGreen); // Set the initial light state
+      }
+    });
+
+    socket.on("light-toggle", (data) => {
+      if (data.slotId === id) {
+        setIsGreen(data.isGreen); // Update light state on toggle
+      }
+    });
+
+    return () => {
+      socket.off("light-state");
+      socket.off("light-toggle");
+    };
+  }, [id]);
+
+  const toggleLight = () => {
+    // Emit the toggle-light event to the server
+    socket.emit("toggle-light", { slotId: id });
+  };
+
+  useEffect(() => {
+    // Fetch slot information
     const fetchSlotInfo = async () => {
       try {
         const response = await axios.get(`/api/admin/slot/${id}`);
         if (response.status === 200) {
           setSlot(response.data);
         } else {
-          console.log("Failed to fetch slot information");
+          console.error("Failed to fetch slot information");
         }
       } catch (error) {
-        console.log("Error fetching slot information:", error);
+        console.error("Error fetching slot information:", error);
       }
     };
 
-    // Fetch leaderboard data (you can replace with dynamic data)
+    // Fetch leaderboard data
     const fetchLeaderboard = async () => {
-      // Mock leaderboard data
-      setLeaderboard([
-        { rank: 1, player: "John Doe", score: 1500 },
-        { rank: 2, player: "Jane Smith", score: 1400 },
-        { rank: 3, player: "Alice Johnson", score: 1300 },
-      ]);
+      try {
+        const response = await axios.get(`/api/admin/leaderboard/${id}`);
+        if (response.status === 200) {
+          setLeaderboard(response.data.leaderboard);
+        } else {
+          console.error("Failed to fetch leaderboard");
+        }
+      } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+      }
     };
 
     if (id) {
@@ -45,15 +76,14 @@ export default function SlotInfo({ params }) {
     }
   }, [id]);
 
-  const toggleButton = () => {
-    setIsGreen(!isGreen);
-  };
-
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
+      {/* Slot Information */}
       <Card className="w-full max-w-4xl mb-6">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Slot Information</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">
+            Slot Information
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -66,6 +96,7 @@ export default function SlotInfo({ params }) {
         </CardContent>
       </Card>
 
+      {/* Leaderboard */}
       <Card className="w-full max-w-4xl mt-6">
         <CardHeader>
           <CardTitle className="text-xl font-bold">Leaderboard</CardTitle>
@@ -92,20 +123,18 @@ export default function SlotInfo({ params }) {
         </CardContent>
       </Card>
 
-      {/* Toggle Button for Light */}
+      {/* Admin Toggle Light */}
       <div className="mt-6">
-        <motion.div
-          onClick={toggleButton}
-          className={`w-12 h-12 rounded-full flex items-center justify-center cursor-pointer ${
+        <motion.button
+          onClick={toggleLight}
+          className={`px-4 py-2 rounded-md font-bold text-white ${
             isGreen ? "bg-green-500" : "bg-red-500"
           }`}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          <span className="text-white font-bold">
-            {isGreen ? "Green" : "Red"}
-          </span>
-        </motion.div>
+          {isGreen ? "Turn Red" : "Turn Green"}
+        </motion.button>
       </div>
     </div>
   );

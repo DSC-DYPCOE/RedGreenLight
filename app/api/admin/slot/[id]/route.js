@@ -10,7 +10,6 @@ export async function GET(req, {params}) {
     const  {id}  = await params;
     console.log(id)
     const slot = await Slot.findOne({ slotId:id });
-
     if (!slot) {
       return NextResponse.json({ error: "No rounds found for this slot" },{status:400});
     }

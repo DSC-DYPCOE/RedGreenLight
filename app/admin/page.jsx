@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import { useState, useEffect,use } from "react";
+import { useState, useEffect, use } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import Link from "next/link"
+import Link from "next/link";
 import axios from "axios";
 
-export default function AdminDashboard({params}) {
+export default function AdminDashboard({ params }) {
   const [players, setPlayers] = useState("");
   const [password, setPassword] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [slots, setSlots] = useState([]);
 
-  const {id} = use(params);
+  const { id } = use(params);
 
   // Fetch all slots on component mount
   useEffect(() => {
@@ -64,7 +64,9 @@ export default function AdminDashboard({params}) {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-md mb-6">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Admin Dashboard</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">
+            Admin Dashboard
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -115,11 +117,11 @@ export default function AdminDashboard({params}) {
               />
             </div>
 
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                type="submit"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+              >
                 Create Slot
               </Button>
             </motion.div>
