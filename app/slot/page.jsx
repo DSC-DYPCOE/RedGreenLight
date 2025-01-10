@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 const statusColors = {
   completed: "bg-gray-500",
@@ -106,12 +107,12 @@ export default function SlotCardsList() {
         slotId: selectedSlotId,
         username,
         password,
-        score:0
+        score: 0,
       });
 
-      if (response.status==200) {
+      if (response.status == 200) {
         // Password is correct, set a cookie for the username
-        document.cookie = `username=${username}; path=/`;
+        Cookies.set("username", username);
         router.push(`/slot/${selectedSlotId}`);
         setDialogOpen(false);
       } else {

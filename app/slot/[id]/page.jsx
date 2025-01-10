@@ -1,10 +1,11 @@
-"use client";
+'use client';
 
 import { useState, useEffect, use } from "react";
 import { io } from "socket.io-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
+import Cookies from "js-cookie";
 
 const socket = io("https://redgreenlightsocket.onrender.com");
 
@@ -64,6 +65,7 @@ export default function TypingTest({ params }) {
               if (prev <= 1) {
                 clearInterval(interval);
                 setIsDisabled(true); // Disable textarea at end time
+                updateLeaderboard(); // Update leaderboard when time is over
                 return 0;
               }
               return prev - 1;
@@ -79,6 +81,30 @@ export default function TypingTest({ params }) {
 
     fetchSlotData();
   }, [id]);
+
+  const updateLeaderboard = async () => {
+    const username = Cookies.get("username")
+    if (!username) {
+      console.error("Username not found in cookies.");
+      return;
+    }
+
+    try {
+      const payload = {
+        username,
+        slotId: id,
+        score,
+      };
+      const response = await axios.patch("/api/admin/slot", payload);
+      if (response.status === 200) {
+        console.log("Leaderboard updated successfully.");
+      } else {
+        console.error("Failed to update leaderboard.");
+      }
+    } catch (error) {
+      console.error("Error updating leaderboard:", error);
+    }
+  };
 
   const remainingTime = () => {
     if (timeRemaining <= 0) {
@@ -136,36 +162,8 @@ export default function TypingTest({ params }) {
     setIsDisabled(true);
   };
 
-  useEffect(() => {
-    if (startTimeReached) {
-      document.onkeydown = handleBan;
-      return () => (document.onkeydown = null);
-    }
-  }, [isGreen, countdown]);
-
-  const handleBan = () => {
-    if (!isGreen && countdown === 0) {
-      setCountdown(30);
-      setScore((prev) => prev - 5);
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setIsDisabled(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-  };
-
-  const preventCopyPaste = (e) => {
-    e.preventDefault();
-  };
-
   return (
-    <div onKeyDown={handleBan}>
+    <div>
       <Card>
         <CardHeader>
           <CardTitle>Typing Test</CardTitle>
@@ -173,13 +171,7 @@ export default function TypingTest({ params }) {
         </CardHeader>
         <CardContent>
           {/* Display the assigned paragraph */}
-          <p
-            className="mb-4 text-gray-700"
-            onCopy={preventCopyPaste}
-            onPaste={preventCopyPaste}
-          >
-            {slotText}
-          </p>
+          <p className="mb-4 text-gray-700">{slotText}</p>
 
           {/* Textarea for user input */}
           <Textarea
@@ -191,8 +183,6 @@ export default function TypingTest({ params }) {
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             disabled={isDisabled}
-            onCopy={preventCopyPaste}
-            onPaste={preventCopyPaste}
             className={`mb-4 ${
               isDisabled ? "bg-gray-300 cursor-not-allowed" : ""
             }`}
