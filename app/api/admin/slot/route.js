@@ -30,42 +30,45 @@ export async function POST(req) {
 
 export async function PATCH(req) {
   try {
-    dbConnect();
-
+    await dbConnect();
     const { slotId, username, score } = await req.json();
+    console.log(slotId);
 
-    // Find the slot by slotId
-    const slot = await Slot.findOne({ slotId });
-    if (!slot) {
+    // Update score only if the new score is greater than the existing score
+    const updateResult = await Slot.updateOne(
+      { slotId, "leaderboard.username": username },
+      {
+        $max: { "leaderboard.$.score": score }, // Only update if the new score is higher
+      }
+    );
+
+    if (updateResult.matchedCount === 0) {
+      // Username not found, add a new entry
+      await Slot.updateOne(
+        { slotId },
+        {
+          $push: { leaderboard: { username, score } },
+        }
+      );
+    }
+
+    // Sort the leaderboard in descending order of score
+    const updatedSlot = await Slot.findOneAndUpdate(
+      { slotId },
+      { $push: { leaderboard: { $each: [], $sort: { score: -1 } } } },
+      { new: true }
+    );
+
+    if (!updatedSlot) {
       return NextResponse.json({ error: "Slot not found" }, { status: 404 });
     }
 
-    // Check if the user already exists in the leaderboard
-    const existingUser = slot.leaderboard.find(
-      (entry) => entry.username === username
-    );
-
-    if (existingUser) {
-      // Update existing user's score if found
-      existingUser.score = score;
-    } else {
-      // Add a new user to the leaderboard
-      slot.leaderboard.push({ username, score });
-    }
-
-    // Sort the leaderboard by score in descending order
-    slot.leaderboard.sort((a, b) => b.score - a.score);
-
-    // Save the updated slot
-    await slot.save();
-
-    // Return the updated leaderboard
     return NextResponse.json(
-      { leaderboard: slot.leaderboard },
+      { leaderboard: updatedSlot.leaderboard },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error updating leaderboard:", error);
+    console.log("Error updating leaderboard:", error);
     return NextResponse.json(
       { error: "Failed to update leaderboard. Please try again." },
       { status: 500 }

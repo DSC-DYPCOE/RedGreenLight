@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { io } from "socket.io-client";
 import axios from "axios";
 
-const socket = io("https://redgreenlightsocket.onrender.com"); // Connect to your socket server
+const socket = io("https://redgreenlightsocket-t7on.onrender.com"); // Connect to your socket server
 
 export default function SlotInfo({ params }) {
   const [slot, setSlot] = useState({

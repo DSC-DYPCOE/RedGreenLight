@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useEffect, use } from "react";
 import { io } from "socket.io-client";
@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
 import Cookies from "js-cookie";
 
-const socket = io("https://redgreenlightsocket.onrender.com");
+const socket = io("https://redgreenlightsocket-t7on.onrender.com");
 
 export default function TypingTest({ params }) {
   const [slotText, setSlotText] = useState(""); // Slot-specific paragraph
@@ -18,6 +18,7 @@ export default function TypingTest({ params }) {
   const [countdown, setCountdown] = useState(0); // Countdown timer
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [startTimeReached, setStartTimeReached] = useState(false); // Flag for start time
+  const [finish, setFinish] = useState(false);
   const { id } = use(params); // Slot ID
 
   useEffect(() => {
@@ -47,15 +48,17 @@ export default function TypingTest({ params }) {
 
         setTimeRemaining(timeLeft);
 
-        // Handle start time logic
-        if (timeUntilStart > 0) {
+        // If the start time has already passed
+        if (timeUntilStart <= 0) {
+          console.log(timeUntilStart);
+          setStartTimeReached(true);
+          setIsDisabled(false); // Enable textarea
+        } else {
+          // Schedule start time logic
           setTimeout(() => {
-            setStartTimeReached(true); // Start time reached
+            setStartTimeReached(true);
             setIsDisabled(false); // Enable textarea
           }, timeUntilStart * 1000);
-        } else {
-          setStartTimeReached(true);
-          setIsDisabled(false);
         }
 
         // Handle end time logic
@@ -65,7 +68,7 @@ export default function TypingTest({ params }) {
               if (prev <= 1) {
                 clearInterval(interval);
                 setIsDisabled(true); // Disable textarea at end time
-                updateLeaderboard(); // Update leaderboard when time is over
+                setFinish(true);
                 return 0;
               }
               return prev - 1;
@@ -81,14 +84,18 @@ export default function TypingTest({ params }) {
 
     fetchSlotData();
   }, [id]);
+  useEffect(() => {
+    if (finish) {
+      updateLeaderboard();
+    }
+  }, [score, finish]);
 
   const updateLeaderboard = async () => {
-    const username = Cookies.get("username")
+    const username = Cookies.get("username");
     if (!username) {
       console.error("Username not found in cookies.");
       return;
     }
-
     try {
       const payload = {
         username,
@@ -116,10 +123,12 @@ export default function TypingTest({ params }) {
   };
 
   useEffect(() => {
-    if (startTimeReached) {
+    console.log(startTimeReached);
+    if (startTimeReached && timeRemaining > 0) {
       socket.emit("request-light-state", { slotId: id });
 
       socket.on("light-state", (data) => {
+        console.log(data);
         if (data.slotId === id) {
           setSlotText(data.paragraph); // Set the assigned paragraph
           setIsGreen(data.isGreen); // Set the initial light state
@@ -147,8 +156,29 @@ export default function TypingTest({ params }) {
         socket.off("light-toggle");
       };
     }
-  }, [id, isGreen, countdown]);
-
+  }, [id, isGreen, countdown, startTimeReached]);
+  useEffect(() => {
+    if (startTimeReached && timeRemaining > 0) {
+      document.onkeydown = handleBan;
+      return () => (document.onkeydown = null);
+    }
+  }, [isGreen, countdown, startTimeReached]);
+  const handleBan = () => {
+    if (!isGreen && countdown === 0) {
+      setCountdown(30);
+      setScore((prev) => prev - 5);
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setIsDisabled(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
   useEffect(() => {
     if (slotText) {
       const correctChars = userInput
@@ -182,7 +212,13 @@ export default function TypingTest({ params }) {
             }
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
-            disabled={isDisabled}
+            disabled={isDisabled || finish || timeRemaining <= 0}
+            onCopy={(e) => {
+              e.preventDefault();
+            }}
+            onPaste={(e) => {
+              e.preventDefault();
+            }}
             className={`mb-4 ${
               isDisabled ? "bg-gray-300 cursor-not-allowed" : ""
             }`}
