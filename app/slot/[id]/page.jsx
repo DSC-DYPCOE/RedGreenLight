@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
 import Cookies from "js-cookie";
 
-const socket = io("https://redgreenlightsocket-t7on.onrender.com");
+const socket = io("https://redgreenlightsocket.onrender.com");
 
 export default function TypingTest({ params }) {
   const [slotText, setSlotText] = useState(""); // Slot-specific paragraph
