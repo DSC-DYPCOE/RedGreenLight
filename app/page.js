@@ -5,7 +5,7 @@ import { io } from "socket.io-client";
 export default function Home() {
   const [socket, setSocket] = useState(null);
   useEffect(() => {
-    const socket = io("http://localhost:3000");
+    const socket = io("https://redgreenlightsocket.onrender.com");
     console.log(socket)
     setSocket(socket)
   }, []);

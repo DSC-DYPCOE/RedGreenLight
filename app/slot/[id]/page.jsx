@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
 
-const socket = io("http://localhost:3000");
+const socket = io("https://redgreenlightsocket.onrender.com");
 
 export default function TypingTest({ params }) {
   const [slotText, setSlotText] = useState(""); // Slot-specific paragraph
@@ -137,8 +137,10 @@ export default function TypingTest({ params }) {
   };
 
   useEffect(() => {
-    document.onkeydown = handleBan;
-    return () => (document.onkeydown = null);
+    if (startTimeReached) {
+      document.onkeydown = handleBan;
+      return () => (document.onkeydown = null);
+    }
   }, [isGreen, countdown]);
 
   const handleBan = () => {
