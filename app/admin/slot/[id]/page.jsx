@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect,use } from "react";
+import { useState, useEffect ,use} from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { io } from "socket.io-client";
@@ -9,10 +9,16 @@ import axios from "axios";
 const socket = io("http://localhost:3000"); // Connect to your socket server
 
 export default function SlotInfo({ params }) {
-  const [slot, setSlot] = useState({});
-  const [leaderboard, setLeaderboard] = useState([]);
+  const [slot, setSlot] = useState({
+    slotId: "",
+    startTime: "",
+    endTime: "",
+    players: 0,
+    password: "",
+    leaderboard: [],
+  });
   const [isGreen, setIsGreen] = useState(false);
-  const { id } = use(params); // Slot ID
+  const { id } = use(params); // Slot ID from params
 
   useEffect(() => {
     // Request initial light state and set up listeners
@@ -42,7 +48,7 @@ export default function SlotInfo({ params }) {
   };
 
   useEffect(() => {
-    // Fetch slot information
+    // Fetch slot information and leaderboard
     const fetchSlotInfo = async () => {
       try {
         const response = await axios.get(`/api/admin/slot/${id}`);
@@ -56,23 +62,8 @@ export default function SlotInfo({ params }) {
       }
     };
 
-    // Fetch leaderboard data
-    const fetchLeaderboard = async () => {
-      try {
-        const response = await axios.get(`/api/admin/leaderboard/${id}`);
-        if (response.status === 200) {
-          setLeaderboard(response.data.leaderboard);
-        } else {
-          console.error("Failed to fetch leaderboard");
-        }
-      } catch (error) {
-        console.error("Error fetching leaderboard:", error);
-      }
-    };
-
     if (id) {
       fetchSlotInfo();
-      fetchLeaderboard();
     }
   }, [id]);
 
@@ -82,7 +73,7 @@ export default function SlotInfo({ params }) {
       <Card className="w-full max-w-4xl mb-6">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">
-            Slot Information
+            Slot Information (Admin View)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -95,36 +86,8 @@ export default function SlotInfo({ params }) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Leaderboard */}
-      <Card className="w-full max-w-4xl mt-6">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold">Leaderboard</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <table className="w-full table-auto border-collapse">
-            <thead>
-              <tr>
-                <th className="border px-4 py-2">Rank</th>
-                <th className="border px-4 py-2">Player</th>
-                <th className="border px-4 py-2">Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboard.map((entry) => (
-                <tr key={entry.rank}>
-                  <td className="border px-4 py-2">{entry.rank}</td>
-                  <td className="border px-4 py-2">{entry.player}</td>
-                  <td className="border px-4 py-2">{entry.score}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
-
-      {/* Admin Toggle Light */}
-      <div className="mt-6">
+  {/* Admin Toggle Light */}
+  <div className="mt-6">
         <motion.button
           onClick={toggleLight}
           className={`px-4 py-2 rounded-md font-bold text-white ${
@@ -136,6 +99,38 @@ export default function SlotInfo({ params }) {
           {isGreen ? "Turn Red" : "Turn Green"}
         </motion.button>
       </div>
+      {/* Leaderboard */}
+      <Card className="w-full max-w-4xl mt-6">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold">Leaderboard</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {slot.leaderboard.length > 0 ? (
+            <table className="w-full table-auto border-collapse text-center">
+              <thead>
+                <tr>
+                  <th className="border px-4 py-2">Rank</th>
+                  <th className="border px-4 py-2">Player</th>
+                  <th className="border px-4 py-2">Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {slot.leaderboard.map((entry, index) => (
+                  <tr key={index}>
+                    <td className="border px-4 py-2">{index + 1}</td>
+                    <td className="border px-4 py-2">{entry.username}</td>
+                    <td className="border px-4 py-2">{entry.score}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="text-center text-gray-500">No players yet.</p>
+          )}
+        </CardContent>
+      </Card>
+
+    
     </div>
   );
 }
