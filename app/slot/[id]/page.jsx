@@ -2,21 +2,20 @@
 
 import { useState, useEffect, use } from "react";
 import { io } from "socket.io-client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { Howl } from "howler"; // Import Howler for audio playback
+import { Howl } from "howler";
+import Link from "next/link";
 
 const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL);
 
 // Import audio files
 const greenSound = new Howl({ src: ["/green.mp3"] });
 const redSound = new Howl({ src: ["/red.mp3"] });
-const shotSound = new Howl({ src: ["/shot.mp3"] ,});
+const shotSound = new Howl({ src: ["/shot.mp3"] });
 const mainLoop = new Howl({
   src: ["/main.m4a"],
-  loop: true, // Loop the main sound
+  loop: true,
 });
 
 export default function TypingTest({ params }) {
@@ -29,7 +28,30 @@ export default function TypingTest({ params }) {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [startTimeReached, setStartTimeReached] = useState(false);
   const [finish, setFinish] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const { id } = use(params);
+
+  // Handle keyboard input
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (isDisabled || finish || timeRemaining <= 0) return;
+      
+      // Only handle printable characters and backspace
+      if (e.key === "Backspace") {
+        setUserInput(prev => prev.slice(0, -1));
+      } else if (e.key.length === 1) {
+        setUserInput(prev => prev + e.key);
+      }
+    };
+
+    if (isFocused) {
+      window.addEventListener("keydown", handleKeyPress);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+    };
+  }, [isDisabled, finish, timeRemaining, isFocused]);
 
   useEffect(() => {
     const fetchSlotData = async () => {
@@ -218,33 +240,111 @@ else{
   }, [userInput, slotText]);
 
   return (
-    <div>
-      <Card className="shadow-lg rounded-lg">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold text-gray-800">Typing Test</CardTitle>
-          <CardTitle className="text-sm text-gray-600">{remainingTime()}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4 text-gray-700">{slotText}</p>
-          <Textarea
-            placeholder={isDisabled ? `Disabled for ${countdown} seconds...` : "Start typing here..."}
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            disabled={isDisabled || finish || timeRemaining <= 0}
-            className={`mb-4 border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 ${
-              isDisabled ? "bg-gray-300 cursor-not-allowed" : ""
-            }`}
-          />
-          <p><strong>Score:</strong> {score}</p>
-          <div className="mt-4">
-            <div className={`w-10 h-10 rounded-full ${isGreen ? "bg-green-500" : "bg-red-500"}`}></div>
-            <p className="mt-2 text-sm text-gray-600">Light is currently {isGreen ? "Green" : "Red"}</p>
+    <div className="min-h-screen bg-[#323437] text-[#646669] flex flex-col">
+      {/* Top Navigation */}
+      <nav className="w-full p-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="text-[#d1d0c5] font-bold text-xl">
+            RedGreenType
+          </Link>
+          <div className="flex items-center gap-2 text-sm">
+            <button className="px-3 py-1 rounded bg-[#2c2e31] text-[#646669]">@ punctuation</button>
+            <button className="px-3 py-1 rounded bg-[#2c2e31] text-[#646669]"># numbers</button>
+            <button className="px-3 py-1 rounded bg-[#2c2e31] text-[#e2b714]">time {timeRemaining}s</button>
           </div>
-          {isDisabled && countdown > 0 && (
-            <p className="mt-4 text-sm text-red-500">Typing is disabled. Please wait {countdown} seconds.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[#646669]">english</span>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main 
+        className="flex-1 flex flex-col items-center justify-center px-4 -mt-20"
+        tabIndex={0}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+      >
+        {/* Text Display */}
+        <div className="max-w-[1200px] w-full mb-8 text-center relative">
+          {!isFocused && (
+            <div className="absolute inset-0 flex items-center justify-center text-[#646669] text-lg">
+              Click here or press any key to focus
+            </div>
           )}
-        </CardContent>
-      </Card>
+          <div 
+            className={`text-3xl font-mono tracking-wide leading-relaxed flex flex-wrap justify-center gap-x-2 ${isFocused ? '' : 'opacity-50'}`}
+          >
+            {slotText.split('').map((char, i) => (
+              <span 
+                key={i} 
+                className={`${
+                  i < userInput.length 
+                    ? userInput[i] === char
+                      ? 'text-[#d1d0c5]' 
+                      : 'text-[#ca4754]'
+                    : 'text-[#646669]'
+                } ${i === userInput.length ? 'relative' : ''}`}
+              >
+                {char}
+                {i === userInput.length && isFocused && (
+                  <span 
+                    className={`absolute left-0 w-[2px] h-[80%] top-[10%] ${
+                      isGreen ? 'bg-[#4CAF50]' : 'bg-[#f44336]'
+                    } animate-blink`}
+                  />
+                )}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Status Indicators */}
+        <div className="flex gap-8 text-xl font-mono mt-8">
+          <div>
+            <span className="text-[#646669]">score: </span>
+            <span className="text-[#d1d0c5]">{score}</span>
+          </div>
+          <div>
+            <span className={`w-3 h-3 rounded-full inline-block mr-2 ${isGreen ? "bg-[#4CAF50]" : "bg-[#f44336]"}`}></span>
+            <span className="text-[#d1d0c5]">{isGreen ? "Green" : "Red"}</span>
+          </div>
+        </div>
+
+        {/* Messages */}
+        {isDisabled && countdown > 0 && (
+          <div className="mt-4 text-[#ca4754] font-mono">
+            Typing is disabled. Please wait {countdown} seconds.
+          </div>
+        )}
+
+        {(finish || timeRemaining <= 0) && (
+          <div className="mt-8 text-[#d1d0c5] text-xl font-mono">
+            Test completed! Final score: {score}
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="w-full p-4 flex items-center justify-between text-sm">
+        <div className="flex items-center gap-4">
+          <span className="text-[#646669]">tab + enter - restart test</span>
+          <span className="text-[#646669]">esc - command line</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-[#646669]">v1.0.0</span>
+        </div>
+      </footer>
+
+      <style jsx global>{`
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        .animate-blink {
+          animation: blink 1s infinite;
+        }
+      `}</style>
     </div>
   );
 }
