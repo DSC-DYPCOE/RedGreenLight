@@ -6,20 +6,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { Howl } from "howler"; // Import Howler for audio playback
 
-const socket = io("https://redgreenlightsocket.onrender.com");
+const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL);
+
+// Import audio files
+const greenSound = new Howl({ src: ["/green.mp3"] });
+const redSound = new Howl({ src: ["/red.mp3"] });
+const shotSound = new Howl({ src: ["/shot.mp3"] ,});
+const mainLoop = new Howl({
+  src: ["/main.m4a"],
+  loop: true, // Loop the main sound
+});
 
 export default function TypingTest({ params }) {
-  const [slotText, setSlotText] = useState(""); // Slot-specific paragraph
-  const [userInput, setUserInput] = useState(""); // User's typing input
-  const [score, setScore] = useState(0); // Typing test score
-  const [isGreen, setIsGreen] = useState(false); // Light state
-  const [isDisabled, setIsDisabled] = useState(true); // Disable textarea initially
-  const [countdown, setCountdown] = useState(0); // Countdown timer
+  const [slotText, setSlotText] = useState("");
+  const [userInput, setUserInput] = useState("");
+  const [score, setScore] = useState(0);
+  const [isGreen, setIsGreen] = useState(false);
+  const [isDisabled, setIsDisabled] = useState(true);
+  const [countdown, setCountdown] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
-  const [startTimeReached, setStartTimeReached] = useState(false); // Flag for start time
+  const [startTimeReached, setStartTimeReached] = useState(false);
   const [finish, setFinish] = useState(false);
-  const { id } = use(params); // Slot ID
+  const { id } = use(params);
 
   useEffect(() => {
     const fetchSlotData = async () => {
@@ -37,37 +47,32 @@ export default function TypingTest({ params }) {
         const endDate = new Date(currentDate);
         endDate.setHours(endHour, endMinute, 0, 0);
 
-        // Handle end time crossing midnight
         if (endDate < startDate) {
           endDate.setDate(endDate.getDate() + 1);
         }
 
         const currentTime = new Date();
-        const timeUntilStart = (startDate - currentTime) / 1000; // Time until start in seconds
-        const timeLeft = Math.max((endDate - currentTime) / 1000, 0); // Time left in seconds
+        const timeUntilStart = (startDate - currentTime) / 1000;
+        const timeLeft = Math.max((endDate - currentTime) / 1000, 0);
 
         setTimeRemaining(timeLeft);
 
-        // If the start time has already passed
         if (timeUntilStart <= 0) {
-          console.log(timeUntilStart);
           setStartTimeReached(true);
-          setIsDisabled(false); // Enable textarea
+          setIsDisabled(false);
         } else {
-          // Schedule start time logic
           setTimeout(() => {
             setStartTimeReached(true);
-            setIsDisabled(false); // Enable textarea
+            setIsDisabled(false);
           }, timeUntilStart * 1000);
         }
 
-        // Handle end time logic
         if (timeLeft > 0) {
           const interval = setInterval(() => {
             setTimeRemaining((prev) => {
               if (prev <= 1) {
                 clearInterval(interval);
-                setIsDisabled(true); // Disable textarea at end time
+                setIsDisabled(true);
                 setFinish(true);
                 return 0;
               }
@@ -75,7 +80,7 @@ export default function TypingTest({ params }) {
             });
           }, 1000);
 
-          return () => clearInterval(interval); // Cleanup timer
+          return () => clearInterval(interval);
         }
       } catch (error) {
         console.error("Failed to fetch slot data:", error);
@@ -84,6 +89,7 @@ export default function TypingTest({ params }) {
 
     fetchSlotData();
   }, [id]);
+
   useEffect(() => {
     if (finish) {
       updateLeaderboard();
@@ -123,31 +129,19 @@ export default function TypingTest({ params }) {
   };
 
   useEffect(() => {
-    console.log(startTimeReached);
     if (startTimeReached && timeRemaining > 0) {
       socket.emit("request-light-state", { slotId: id });
 
       socket.on("light-state", (data) => {
-        console.log(data);
         if (data.slotId === id) {
-          setSlotText(data.paragraph); // Set the assigned paragraph
-          setIsGreen(data.isGreen); // Set the initial light state
-          if (!data.isGreen) {
-            handleDisableInput();
-          }
+          setSlotText(data.paragraph);
+          handleLightToggle(data.isGreen);
         }
       });
 
       socket.on("light-toggle", (data) => {
         if (data.slotId === id) {
-          setIsGreen(data.isGreen); // Update light state on toggle
-          if (!data.isGreen) {
-            handleDisableInput();
-          } else {
-            if (countdown <= 0) {
-              setIsDisabled(false); // Re-enable typing if light turns green
-            }
-          }
+          handleLightToggle(data.isGreen);
         }
       });
 
@@ -156,17 +150,51 @@ export default function TypingTest({ params }) {
         socket.off("light-toggle");
       };
     }
-  }, [id, isGreen, countdown, startTimeReached]);
-  useEffect(() => {
+  }, [id, startTimeReached, timeRemaining]);
+
+  const handleLightToggle = (isGreenState) => {
+    setIsGreen(isGreenState);
+  
+    if (isGreenState) {
+      setIsDisabled(false);
+    } else {
+      setIsDisabled(true);
+    }
+  };
+
+  useEffect(()=>{
+if(isGreen){
+  if (!greenSound.playing()) {
+    greenSound.play();
+   
+  }
+  if (!mainLoop.playing()) {
+    mainLoop.play();
+  }
+
+}
+else{
+  if (!redSound.playing()) {
+    redSound.play();
+  }
+  if (mainLoop.playing()) {
+    mainLoop.stop();
+  }
+ 
+}
+  },[isGreen])
+    useEffect(() => {
     if (startTimeReached && timeRemaining > 0) {
       document.onkeydown = handleBan;
       return () => (document.onkeydown = null);
     }
   }, [isGreen, countdown, startTimeReached]);
+
   const handleBan = () => {
     if (!isGreen && countdown === 0) {
       setCountdown(30);
       setScore((prev) => prev - 5);
+      shotSound.play();
       const timer = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
@@ -179,6 +207,7 @@ export default function TypingTest({ params }) {
       }, 1000);
     }
   };
+
   useEffect(() => {
     if (slotText) {
       const correctChars = userInput
@@ -188,64 +217,31 @@ export default function TypingTest({ params }) {
     }
   }, [userInput, slotText]);
 
-  const handleDisableInput = () => {
-    setIsDisabled(true);
-  };
-
   return (
     <div>
-      <Card>
+      <Card className="shadow-lg rounded-lg">
         <CardHeader>
-          <CardTitle>Typing Test</CardTitle>
-          <CardTitle>{remainingTime()}</CardTitle>
+          <CardTitle className="text-xl font-bold text-gray-800">Typing Test</CardTitle>
+          <CardTitle className="text-sm text-gray-600">{remainingTime()}</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Display the assigned paragraph */}
           <p className="mb-4 text-gray-700">{slotText}</p>
-
-          {/* Textarea for user input */}
           <Textarea
-            placeholder={
-              isDisabled
-                ? `Disabled for ${countdown} seconds...`
-                : "Start typing here..."
-            }
+            placeholder={isDisabled ? `Disabled for ${countdown} seconds...` : "Start typing here..."}
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             disabled={isDisabled || finish || timeRemaining <= 0}
-            onCopy={(e) => {
-              e.preventDefault();
-            }}
-            onPaste={(e) => {
-              e.preventDefault();
-            }}
-            className={`mb-4 ${
+            className={`mb-4 border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 ${
               isDisabled ? "bg-gray-300 cursor-not-allowed" : ""
             }`}
           />
-
-          {/* Display typing score */}
-          <p>
-            <strong>Score:</strong> {score}
-          </p>
-
-          {/* Light state display */}
+          <p><strong>Score:</strong> {score}</p>
           <div className="mt-4">
-            <div
-              className={`w-10 h-10 rounded-full ${
-                isGreen ? "bg-green-500" : "bg-red-500"
-              }`}
-            ></div>
-            <p className="mt-2 text-sm text-gray-600">
-              Light is currently {isGreen ? "Green" : "Red"}
-            </p>
+            <div className={`w-10 h-10 rounded-full ${isGreen ? "bg-green-500" : "bg-red-500"}`}></div>
+            <p className="mt-2 text-sm text-gray-600">Light is currently {isGreen ? "Green" : "Red"}</p>
           </div>
-
-          {/* Countdown timer */}
           {isDisabled && countdown > 0 && (
-            <p className="mt-4 text-sm text-red-500">
-              Typing is disabled. Please wait {countdown} seconds.
-            </p>
+            <p className="mt-4 text-sm text-red-500">Typing is disabled. Please wait {countdown} seconds.</p>
           )}
         </CardContent>
       </Card>

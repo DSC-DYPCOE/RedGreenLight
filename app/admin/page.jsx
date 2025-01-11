@@ -62,16 +62,16 @@ export default function AdminDashboard({ params }) {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
-      <Card className="w-full max-w-md mb-6">
+      <Card className="w-full max-w-md mb-6 shadow-lg rounded-lg">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">
+          <CardTitle className="text-2xl font-bold text-center text-gray-800">
             Admin Dashboard
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="players">Number of Players</Label>
+              <Label htmlFor="players" className="text-gray-700">Number of Players</Label>
               <Input
                 id="players"
                 type="number"
@@ -80,6 +80,7 @@ export default function AdminDashboard({ params }) {
                 onChange={(e) => setPlayers(e.target.value)}
                 required
                 min="1"
+                className="border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
               />
             </div>
 
@@ -120,7 +121,7 @@ export default function AdminDashboard({ params }) {
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 type="submit"
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-md shadow-md"
               >
                 Create Slot
               </Button>

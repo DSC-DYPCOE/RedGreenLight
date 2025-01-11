@@ -8,7 +8,7 @@ const nextConfig = {
           headers: [
             {
               key: "Access-Control-Allow-Origin",
-              value: "https://redgreenlight-1.onrender.com", // Update this to your frontend URL
+              value: process.env.NEXT_PUBLIC_URL, // Update this to your frontend URL
             },
             {
               key: "Access-Control-Allow-Methods",

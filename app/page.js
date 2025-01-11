@@ -5,7 +5,7 @@ import { io } from "socket.io-client";
 export default function Home() {
   const [socket, setSocket] = useState(null);
   useEffect(() => {
-    const socket = io("https://redgreenlightsocket.onrender.com");
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL);
     console.log(socket)
     setSocket(socket)
   }, []);
