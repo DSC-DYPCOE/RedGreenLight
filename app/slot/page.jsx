@@ -1,29 +1,14 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import moment from "moment";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-
-const statusColors = {
-  completed: "bg-gray-500",
-  upcoming: "bg-indigo-500",
-  live: "bg-emerald-500",
-};
+import Link from "next/link";
 
 const SlotCard = ({ slot, onJoin }) => {
   const calculateStatus = () => {
@@ -48,32 +33,33 @@ const SlotCard = ({ slot, onJoin }) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
+      className="mb-4"
     >
-      <Card className="mb-6 shadow-lg rounded-lg overflow-hidden bg-white dark:bg-gray-800 transform hover:scale-105 transition-transform duration-300">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Slot {slot.slotId}</h3>
-              <p className="text-gray-600 dark:text-gray-300">Start: {slot.startTime}</p>
-              <p className="text-gray-600 dark:text-gray-300">End: {slot.endTime}</p>
-              <p className="text-gray-600 dark:text-gray-300">Players: {slot.numberOfPlayers}</p>
-            </div>
-            <div className="flex flex-col items-end space-y-4">
-              <Badge
-                className={`${statusColors[status]} text-white px-3 py-1 rounded-full text-sm font-semibold`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </Badge>
-              <Button
-                onClick={() => onJoin(slot.slotId)}
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 rounded-full px-6 py-2 shadow-md transform hover:scale-105 transition-all duration-300"
-              >
-                Join Now
-              </Button>
-            </div>
+      <div className="bg-[#2c2e31] p-6 rounded-lg hover:bg-[#363739] transition-colors duration-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-[#d1d0c5] text-xl font-mono mb-2">Slot {slot.slotId}</h3>
+            <p className="text-[#646669] font-mono">Start: {slot.startTime}</p>
+            <p className="text-[#646669] font-mono">End: {slot.endTime}</p>
+            <p className="text-[#646669] font-mono">Players: {slot.numberOfPlayers}</p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex flex-col items-end space-y-4">
+            <span className={`px-3 py-1 rounded text-sm font-mono ${
+              status === 'live' ? 'text-[#4CAF50]' :
+              status === 'upcoming' ? 'text-[#e2b714]' :
+              'text-[#646669]'
+            }`}>
+              {status.toUpperCase()}
+            </span>
+            <button
+              onClick={() => onJoin(slot.slotId)}
+              className="bg-[#2c2e31] text-[#d1d0c5] hover:bg-[#363739] font-mono px-6 py-2 rounded transition-colors duration-200"
+            >
+              join
+            </button>
+          </div>
+        </div>
+      </div>
     </motion.div>
   );
 };
@@ -129,65 +115,80 @@ export default function SlotCardsList() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 dark:from-gray-900 dark:to-purple-900">
+    <div className="min-h-screen bg-[#323437] text-[#646669]">
+      {/* Top Navigation */}
+      <nav className="w-full p-4 flex items-center justify-between border-b border-[#2c2e31]">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="text-[#d1d0c5] font-bold text-xl font-mono">
+            RedGreenType
+          </Link>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[#646669] font-mono">english</span>
+        </div>
+      </nav>
+
       <div className="container mx-auto px-4 py-12">
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-4xl font-extrabold text-center mb-10 text-gray-800 dark:text-white"
-        >
-          Available Slots
-        </motion.h1>
-        <AnimatePresence>
-          {slots.length === 0 ? (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center text-gray-600 dark:text-gray-300"
-            >
-              No slots available
-            </motion.p>
-          ) : (
-            slots.map((slot) => (
-              <SlotCard key={slot._id} slot={slot} onJoin={handleJoin} />
-            ))
-          )}
-        </AnimatePresence>
+        <h1 className="text-[#d1d0c5] text-2xl font-mono text-center mb-12">available slots</h1>
+        
+        <div className="max-w-3xl mx-auto">
+          <AnimatePresence>
+            {slots.length === 0 ? (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center text-[#646669] font-mono"
+              >
+                no slots available
+              </motion.p>
+            ) : (
+              slots.map((slot) => (
+                <SlotCard key={slot._id} slot={slot} onJoin={handleJoin} />
+              ))
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-white dark:bg-gray-800 rounded-lg shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-white">Join Slot</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white"
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white"
-            />
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+      {dialogOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-[#2c2e31] p-6 rounded-lg w-96">
+            <h2 className="text-[#d1d0c5] text-xl font-mono mb-6">join slot</h2>
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full bg-[#323437] text-[#d1d0c5] font-mono p-2 rounded border border-[#646669] focus:outline-none focus:border-[#e2b714]"
+              />
+              <input
+                type="password"
+                placeholder="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-[#323437] text-[#d1d0c5] font-mono p-2 rounded border border-[#646669] focus:outline-none focus:border-[#e2b714]"
+              />
+              {error && <p className="text-[#ca4754] text-sm font-mono">{error}</p>}
+            </div>
+            <div className="flex justify-end gap-4 mt-6">
+              <button
+                onClick={() => setDialogOpen(false)}
+                className="text-[#646669] font-mono hover:text-[#d1d0c5] transition-colors duration-200"
+              >
+                cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="bg-[#2c2e31] text-[#d1d0c5] hover:bg-[#363739] font-mono px-6 py-2 rounded transition-colors duration-200"
+              >
+                join
+              </button>
+            </div>
           </div>
-          <DialogFooter>
-            <Button onClick={() => setDialogOpen(false)} variant="outline" className="text-gray-600 dark:text-gray-300">
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-              Join
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 }
