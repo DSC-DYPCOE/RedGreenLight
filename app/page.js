@@ -1,280 +1,206 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import {
-  Keyboard,
-  Play,
-  Trophy,
-  Users,
-  Book,
-  AlertCircle,
-  Type,
-} from "lucide-react";
-import Background from "../components/ui/Background";
+import dynamic from "next/dynamic";
+import squidgamesAnimation from "../public/squidgames.json";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { Circle, Square, Triangle } from "lucide-react";
+
+const LottieComponent = dynamic(() => import("lottie-react").then((mod) => mod.default), {
+  ssr: false,
+  loading: () => <div className="w-[800px] h-[800px] bg-gray-800 animate-pulse rounded-lg"></div>,
+});
+
 const Home = () => {
-  const [isHoveringDemo, setIsHoveringDemo] = useState(false);
-  const [demoLight, setDemoLight] = useState("green");
-  const [demoText, setDemoText] = useState("");
-  const [showDoll, setShowDoll] = useState(false);
-  const sampleText = "Type Here...";
+  const [showButton, setShowButton] = useState(false);
 
   useEffect(() => {
-    if (isHoveringDemo) {
-      const interval = setInterval(() => {
-        setDemoLight((prev) => {
-          setShowDoll(prev === "green");
-          return prev === "green" ? "red" : "green";
-        });
-      }, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [isHoveringDemo]);
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      setShowButton(scrollPosition > 100);
+    };
 
-  const handleDemoType = (e) => {
-    if (demoLight === "green") {
-      setDemoText(e.target.value);
-    }
-  };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
-  // Framer Motion variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.3,
-      },
+        duration: 1,
+        when: "beforeChildren",
+      }
     },
+    exit: {
+      opacity: 0,
+      transition: { duration: 0.5 }
+    }
   };
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
+  const lottieVariants = {
+    hidden: { scale: 0.8, opacity: 0 },
+    visible: {
+      scale: 1,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        damping: 20,
+        stiffness: 100
+      }
+    }
+  };
+
+  const buttonVariants = {
+    hidden: { y: 50, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
       transition: {
         type: "spring",
-        stiffness: 100,
-      },
+        damping: 20,
+        stiffness: 100
+      }
     },
-  };
-
-  const dollVariants = {
-    initial: { rotateY: 0 },
-    turned: {
-      rotateY: 180,
-      transition: { duration: 0.5 },
+    hover: {
+      scale: 1.05,
+      boxShadow: "0px 0px 20px rgba(226, 183, 20, 0.4)",
+      transition: {
+        type: "spring",
+        damping: 10,
+        stiffness: 200
+      }
     },
+    tap: {
+      scale: 0.95
+    }
   };
 
   return (
-    <motion.div
+    <motion.div 
+      className="min-h-[150vh] bg-[#323437]"
+      variants={containerVariants}
       initial="hidden"
       animate="visible"
-      variants={containerVariants}
-      className="min-h-screen relative bg-black text-white overflow-hidden"
+      exit="exit"
     >
-      {/* Enhanced Background Elements */}
-      <Background />
-
-      {/* Main Content */}
-      <div className="relative z-10">
-        <div className="container mx-auto px-4 py-16">
-          {/* Animated Header */}
-          <motion.div variants={itemVariants} className="text-center mb-12">
-            <motion.h1
-              className="text-7xl font-bold mb-6 relative"
-              animate={{ scale: [1, 1.02, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <motion.span
-                animate={{
-                  color: ["#22c55e", "#ef4444", "#22c55e"],
-                  rotateY: [0, 360],
-                }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="inline-block"
-              >
-                Type
-              </motion.span>
-              <span className="mx-4">or</span>
-              <motion.span
-                animate={{
-                  scale: [1, 1.1, 1],
-                  color: ["#ef4444", "#dc2626", "#ef4444"],
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                Die
-              </motion.span>
-            </motion.h1>
-
-            <motion.p
-              variants={itemVariants}
-              className="text-2xl text-gray-300 mb-8"
-            >
-              Welcome to the ultimate high-stakes typing challenge
-            </motion.p>
-
-            <motion.div
-              className="flex justify-center gap-4"
-              variants={itemVariants}
-            >
-              <motion.button
-
-                whileHover={{ scale: 1.05, rotate: 2 }}
-                className="bg-gray-700 w-[30vh] h-[20vh] bg-transparent text-white  rounded-lg font-bold text-xl 
-                         flex items-center gap-2"
-              >
-                <Link href={"/slot"}>
-                <img className="w-full h-full " src="/card.jpg" />
-                </Link>
-              </motion.button>
-            </motion.div>
-          </motion.div>
-
-          {/* Interactive Demo Section */}
-          <motion.div
-            variants={itemVariants}
-            whileHover={{ scale: 1.02 }}
-            className="max-w-3xl mx-auto bg-gray-800/90 backdrop-blur-sm p-8 rounded-xl shadow-2xl mb-16 border border-pink-500/20"
-            onMouseEnter={() => setIsHoveringDemo(true)}
-            onMouseLeave={() => {
-              setIsHoveringDemo(false);
-              setDemoLight("green");
-              setShowDoll(false);
-            }}
-          >
-            <motion.div
-              animate={
-                demoLight === "green"
-                  ? { scale: [1, 1.05, 1], rotate: [0, 5, -5, 0] }
-                  : { scale: 1 }
-              }
-              transition={{ duration: 1, repeat: Infinity }}
-              className="flex items-center justify-center mb-6"
-            >
-              {/* Guardian Icon */}
-              <motion.div
-                variants={dollVariants}
-                animate={showDoll ? "turned" : "initial"}
-                className="w-24 h-24 rounded-full flex items-center justify-center shadow-lg"
-                style={{
-                  background: demoLight === "green" ? "#22c55e" : "#ef4444",
-                }}
-              >
-                {showDoll ? (
-                  <span className="text-4xl">🎎</span>
-                ) : (
-                  <Type className="w-12 h-12" />
-                )}
-              </motion.div>
-            </motion.div>
-
-            <motion.input
-              whileFocus={{ scale: 1.02 }}
-              type="text"
-              value={demoText}
-              onChange={handleDemoType}
-              placeholder={sampleText}
-              className={`w-full bg-gray-700/80 p-4 rounded-lg text-center text-lg transition-all
-                       ${
-                         demoLight === "red"
-                           ? "cursor-not-allowed opacity-50"
-                           : ""
-                       }`}
-              disabled={demoLight === "red"}
-            />
-          </motion.div>
-
-          {/* Feature Cards */}
-          <motion.div
-            variants={containerVariants}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8"
-          >
-            {[
-              {
-                icon: Keyboard,
-                title: "Elite Games",
-                description:
-                  "Join with players in the ultimate typing challenge",
-              },
-              {
-                icon: Trophy,
-                title: "Fortune Awaits",
-                description: "One winner takes home the life-changing prize",
-              },
-              {
-                icon: AlertCircle,
-                title: "Red Light...",
-                description: "Follow the guardian's commands precisely",
-              },
-            ].map((feature, index) => (
-              <motion.div
-                key={index}
-                variants={itemVariants}
-                whileHover={{
-                  scale: 1.05,
-                  rotate: -1,
-                  transition: { type: "spring", stiffness: 300 },
-                }}
-                className="bg-gray-800/80 backdrop-blur-sm p-6 rounded-lg text-center border border-pink-500/20"
-              >
-                <motion.div
-                  animate={{
-                    y: [0, -5, 0],
-                    rotate: [0, 5, -5, 0],
-                  }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  <feature.icon className="w-12 h-12 mx-auto mb-4 text-pink-500" />
-                </motion.div>
-                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-gray-400">{feature.description}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-
-        {/* Stats Bar */}
-        <motion.div
-          variants={itemVariants}
-          className="bg-gray-800/50 backdrop-blur-sm py-8 border-t border-pink-500/20"
+      {/* Centered Lottie Animation */}
+      <motion.div 
+        className="h-screen flex items-center justify-center"
+        variants={lottieVariants}
+      >
+        <motion.div 
+          className="relative"
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300 }}
         >
-          <div className="container mx-auto px-4">
-            <div className="flex justify-around items-center text-center">
-              {[
-                { value: "456", label: "Players Remaining" },
-                { value: "Rs?", label: "Grand Prize" },
-                { value: "001", label: "Next Player" },
-              ].map((stat, index) => (
-                <motion.div
-                  key={index}
-                  whileHover={{ scale: 1.1 }}
-                  className="group"
-                >
-                  <motion.div
-                    animate={{
-                      y: [0, -5, 0],
-                      scale: [1, 1.05, 1],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      delay: index * 0.2,
-                    }}
-                    className="text-3xl font-bold text-pink-500"
-                  >
-                    {stat.value}
-                  </motion.div>
-                  <div className="text-gray-300">{stat.label}</div>
-                </motion.div>
-              ))}
-            </div>
+          <motion.div 
+            className="absolute inset-0 bg-[#f763a5] blur-3xl opacity-10"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.1, 0.15, 0.1],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <div className="w-[800px] h-[800px] flex items-center justify-center relative">
+            <LottieComponent
+              animationData={squidgamesAnimation}
+              className="w-full h-full"
+            />
           </div>
         </motion.div>
+      </motion.div>
+
+      {/* Scroll Section with Button */}
+      <div className="min-h-screen flex items-center justify-center relative">
+        <AnimatePresence>
+          {showButton && (
+            <motion.div
+              className="text-center space-y-4"
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+            >
+              <Link href="/slot">
+                <motion.button
+                  variants={buttonVariants}
+                  whileHover="hover"
+                  whileTap="tap"
+                  className="bg-[#e2b714] text-[#323437] font-mono text-2xl px-16 py-6 rounded-lg shadow-lg relative overflow-hidden group"
+                >
+                  <motion.div
+                    className="absolute inset-0 bg-[#c49c11] opacity-0 group-hover:opacity-100"
+                    transition={{ duration: 0.3 }}
+                  />
+                  <motion.span className="relative z-10 flex items-center gap-2">
+                    <Circle size={24} />
+                    <Triangle size={24} />
+                    <Square size={24} />
+
+                  </motion.span>
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20"
+                    animate={{
+                      x: [-500, 500],
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      repeatDelay: 1
+                    }}
+                  />
+                </motion.button>
+              </Link>
+
+              <Link href="/prize">
+                <motion.button
+                  variants={buttonVariants}
+                  whileHover="hover"
+                  whileTap="tap"
+                  className="ml-12 bg-[#af4c4c] text-white font-mono text-2xl px-16 py-6 rounded-lg shadow-lg relative overflow-hidden group"
+                >
+                  <motion.div
+                    className="absolute inset-0 bg-[#f72585] opacity-0 group-hover:opacity-100"
+                    transition={{ duration: 0.3 }}
+                  />
+                  <motion.span className="relative z-10">
+                    view prizes
+                  </motion.span>
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-[#f72585] to-transparent opacity-0 group-hover:opacity-20"
+                    animate={{
+                      x: [-500, 500],
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      repeatDelay: 1
+                    }}
+                  />
+                </motion.button>
+              </Link>
+
+              <motion.p 
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { 
+                    opacity: 1, 
+                    y: 0,
+                    transition: { delay: 0.3 }
+                  }
+                }}
+                className="mt-6 text-[#646669] font-mono text-lg"
+              >
+                456 players remaining
+              </motion.p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );

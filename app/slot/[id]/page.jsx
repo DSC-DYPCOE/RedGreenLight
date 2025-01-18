@@ -34,9 +34,9 @@ export default function TypingTest({ params }) {
   // Handle keyboard input
   useEffect(() => {
     const handleKeyPress = (e) => {
-      if (isDisabled || finish || timeRemaining <= 0) return;
+      if (finish || timeRemaining <= 0) return; // Only check for game end, not isDisabled
       
-      // Only handle printable characters and backspace
+      // Handle input regardless of light color
       if (e.key === "Backspace") {
         setUserInput(prev => prev.slice(0, -1));
       } else if (e.key.length === 1) {
@@ -51,7 +51,7 @@ export default function TypingTest({ params }) {
     return () => {
       window.removeEventListener("keydown", handleKeyPress);
     };
-  }, [isDisabled, finish, timeRemaining, isFocused]);
+  }, [finish, timeRemaining, isFocused]);
 
   useEffect(() => {
     const fetchSlotData = async () => {
@@ -205,39 +205,30 @@ else{
  
 }
   },[isGreen])
-    useEffect(() => {
-    if (startTimeReached && timeRemaining > 0) {
-      document.onkeydown = handleBan;
-      return () => (document.onkeydown = null);
-    }
-  }, [isGreen, countdown, startTimeReached]);
-
-  const handleBan = () => {
-    if (!isGreen && countdown === 0) {
-      setCountdown(30);
-      setScore((prev) => prev - 5);
-      shotSound.play();
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setIsDisabled(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-  };
 
   useEffect(() => {
     if (slotText) {
-      const correctChars = userInput
-        .split("")
-        .filter((char, index) => char === slotText[index]).length;
-      setScore(correctChars);
+      const lastInputChar = userInput[userInput.length - 1];
+      const lastCharIndex = userInput.length - 1;
+      
+      if (lastInputChar) {
+        if (!isGreen) {
+          // Red light penalty
+          setScore(prev => prev - 5);
+          shotSound.play();
+        } else {
+          // Green light scoring
+          if (lastInputChar === slotText[lastCharIndex]) {
+            // Correct character during green light
+            setScore(prev => prev + 1);
+          } else {
+            // Mistyped character during green light
+            setScore(prev => prev - 1);
+          }
+        }
+      }
     }
-  }, [userInput, slotText]);
+  }, [userInput, slotText, isGreen]);
 
   return (
     <div className="min-h-screen bg-[#323437] text-[#646669] flex flex-col">
