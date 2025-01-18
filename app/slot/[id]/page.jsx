@@ -29,6 +29,8 @@ export default function TypingTest({ params }) {
   const [startTimeReached, setStartTimeReached] = useState(false);
   const [finish, setFinish] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [prevInputLength, setPrevInputLength] = useState(0);
+  const [scoredPositions, setScoredPositions] = useState(new Set());
   const { id } = use(params);
 
   // Handle keyboard input
@@ -113,12 +115,58 @@ export default function TypingTest({ params }) {
   }, [id]);
 
   useEffect(() => {
-    if (finish) {
-      updateLeaderboard();
+    if (slotText) {
+      const lastInputChar = userInput[userInput.length - 1];
+      const lastCharIndex = userInput.length - 1;
+      
+      // Only process scoring if:
+      // 1. A character was added (not removed)
+      // 2. The position hasn't been scored yet
+      // 3. We're at a new position (beyond our previous maximum)
+      if (lastInputChar && 
+          userInput.length > 0 && 
+          userInput.length > prevInputLength && 
+          !scoredPositions.has(lastCharIndex) &&
+          lastCharIndex >= scoredPositions.size) {  // Only score if we're at a new position
+        
+        if (!isGreen) {
+          // Red light penalty
+          setScore(prev => {
+            const newScore = prev - 5;
+            updateLeaderboard(newScore);
+            return newScore;
+          });
+          shotSound.play();
+        } else {
+          // Green light scoring
+          if (lastInputChar === slotText[lastCharIndex]) {
+            // Correct character during green light
+            setScore(prev => {
+              const newScore = prev + 1;
+              updateLeaderboard(newScore);
+              return newScore;
+            });
+          } else {
+            // Mistyped character during green light
+            setScore(prev => {
+              const newScore = prev - 1;
+              updateLeaderboard(newScore);
+              return newScore;
+            });
+          }
+        }
+        
+        // Mark this position as scored
+        setScoredPositions(prev => new Set([...prev, lastCharIndex]));
+      }
+      
+      // Remove the backspace handling that was clearing scored positions
+      setPrevInputLength(userInput.length);
     }
-  }, [score, finish]);
+  }, [userInput, slotText, isGreen]);
 
-  const updateLeaderboard = async () => {
+  // Add this function to handle immediate leaderboard updates
+  const updateLeaderboard = async (newScore) => {
     const username = Cookies.get("username");
     if (!username) {
       console.error("Username not found in cookies.");
@@ -128,14 +176,16 @@ export default function TypingTest({ params }) {
       const payload = {
         username,
         slotId: id,
-        score,
+        score: newScore,
       };
-      const response = await axios.patch("/api/admin/slot", payload);
-      if (response.status === 200) {
-        console.log("Leaderboard updated successfully.");
-      } else {
-        console.error("Failed to update leaderboard.");
-      }
+      await axios.patch("/api/admin/slot", payload);
+      // Emit score update through socket
+      socket.emit("score-update", {
+        slotId: id,
+        username,
+        score: newScore
+      });
+      console.log("Leaderboard updated successfully with score:", newScore);
     } catch (error) {
       console.error("Error updating leaderboard:", error);
     }
@@ -205,30 +255,6 @@ else{
  
 }
   },[isGreen])
-
-  useEffect(() => {
-    if (slotText) {
-      const lastInputChar = userInput[userInput.length - 1];
-      const lastCharIndex = userInput.length - 1;
-      
-      if (lastInputChar) {
-        if (!isGreen) {
-          // Red light penalty
-          setScore(prev => prev - 5);
-          shotSound.play();
-        } else {
-          // Green light scoring
-          if (lastInputChar === slotText[lastCharIndex]) {
-            // Correct character during green light
-            setScore(prev => prev + 1);
-          } else {
-            // Mistyped character during green light
-            setScore(prev => prev - 1);
-          }
-        }
-      }
-    }
-  }, [userInput, slotText, isGreen]);
 
   return (
     <div className="min-h-screen bg-[#323437] text-[#646669] flex flex-col">

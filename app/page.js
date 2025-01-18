@@ -13,6 +13,7 @@ const LottieComponent = dynamic(() => import("lottie-react").then((mod) => mod.d
 
 const Home = () => {
   const [showButton, setShowButton] = useState(false);
+  const [leaderboard, setLeaderboard] = useState([]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,6 +23,36 @@ const Home = () => {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    socket.on("leaderboard-update", (data) => {
+      setLeaderboard(prevLeaderboard => {
+        // Create a new copy of the leaderboard
+        const updatedLeaderboard = [...prevLeaderboard];
+        
+        // Find and update the player's score
+        const playerIndex = updatedLeaderboard.findIndex(
+          player => player.username === data.username && player.slotId === data.slotId
+        );
+        
+        if (playerIndex !== -1) {
+          updatedLeaderboard[playerIndex] = {
+            ...updatedLeaderboard[playerIndex],
+            score: data.score
+          };
+          
+          // Sort the leaderboard by score in descending order
+          updatedLeaderboard.sort((a, b) => b.score - a.score);
+        }
+        
+        return updatedLeaderboard;
+      });
+    });
+
+    return () => {
+      socket.off("leaderboard-update");
+    };
   }, []);
 
   const containerVariants = {
