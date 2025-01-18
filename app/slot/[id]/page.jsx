@@ -7,17 +7,6 @@ import Cookies from "js-cookie";
 import { Howl } from "howler";
 import Link from "next/link";
 
-const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL);
-
-// Import audio files
-const greenSound = new Howl({ src: ["/green.mp3"] });
-const redSound = new Howl({ src: ["/red.mp3"] });
-const shotSound = new Howl({ src: ["/shot.mp3"] });
-const mainLoop = new Howl({
-  src: ["/main.m4a"],
-  loop: true,
-});
-
 export default function TypingTest({ params }) {
   const [slotText, setSlotText] = useState("");
   const [userInput, setUserInput] = useState("");
@@ -31,7 +20,29 @@ export default function TypingTest({ params }) {
   const [isFocused, setIsFocused] = useState(false);
   const [prevInputLength, setPrevInputLength] = useState(0);
   const [scoredPositions, setScoredPositions] = useState(new Set());
+  const [socket, setSocket] = useState(null);
   const { id } = use(params);
+
+  // Initialize socket connection
+  useEffect(() => {
+    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL);
+    setSocket(newSocket);
+
+    return () => {
+      if (newSocket) {
+        newSocket.disconnect();
+      }
+    };
+  }, []);
+
+  // Import audio files
+  const greenSound = new Howl({ src: ["/green.mp3"] });
+  const redSound = new Howl({ src: ["/red.mp3"] });
+  const shotSound = new Howl({ src: ["/shot.mp3"] });
+  const mainLoop = new Howl({
+    src: ["/main.m4a"],
+    loop: true,
+  });
 
   // Handle keyboard input
   useEffect(() => {
@@ -180,11 +191,13 @@ export default function TypingTest({ params }) {
       };
       await axios.patch("/api/admin/slot", payload);
       // Emit score update through socket
-      socket.emit("score-update", {
-        slotId: id,
-        username,
-        score: newScore
-      });
+      if (socket) {
+        socket.emit("score-update", {
+          slotId: id,
+          username,
+          score: newScore
+        });
+      }
       console.log("Leaderboard updated successfully with score:", newScore);
     } catch (error) {
       console.error("Error updating leaderboard:", error);
@@ -201,7 +214,7 @@ export default function TypingTest({ params }) {
   };
 
   useEffect(() => {
-    if (startTimeReached && timeRemaining > 0) {
+    if (startTimeReached && timeRemaining > 0 && socket) {
       socket.emit("request-light-state", { slotId: id });
 
       socket.on("light-state", (data) => {
@@ -222,7 +235,7 @@ export default function TypingTest({ params }) {
         socket.off("light-toggle");
       };
     }
-  }, [id, startTimeReached, timeRemaining]);
+  }, [id, startTimeReached, timeRemaining, socket]);
 
   const handleLightToggle = (isGreenState) => {
     setIsGreen(isGreenState);
