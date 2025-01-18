@@ -21,6 +21,12 @@ export default function TypingTest({ params }) {
   const [prevInputLength, setPrevInputLength] = useState(0);
   const [scoredPositions, setScoredPositions] = useState(new Set());
   const [socket, setSocket] = useState(null);
+  const [sounds, setSounds] = useState({
+    greenSound: null,
+    redSound: null,
+    shotSound: null,
+    mainLoop: null
+  });
   const { id } = use(params);
 
   // Initialize socket connection
@@ -35,14 +41,31 @@ export default function TypingTest({ params }) {
     };
   }, []);
 
-  // Import audio files
-  const greenSound = new Howl({ src: ["/green.mp3"] });
-  const redSound = new Howl({ src: ["/red.mp3"] });
-  const shotSound = new Howl({ src: ["/shot.mp3"] });
-  const mainLoop = new Howl({
-    src: ["/main.m4a"],
-    loop: true,
-  });
+  // Initialize audio files
+  useEffect(() => {
+    const greenSound = new Howl({ src: ["/green.mp3"] });
+    const redSound = new Howl({ src: ["/red.mp3"] });
+    const shotSound = new Howl({ src: ["/shot.mp3"] });
+    const mainLoop = new Howl({
+      src: ["/main.m4a"],
+      loop: true,
+    });
+
+    setSounds({
+      greenSound,
+      redSound,
+      shotSound,
+      mainLoop
+    });
+
+    return () => {
+      // Clean up sounds on unmount
+      greenSound.unload();
+      redSound.unload();
+      shotSound.unload();
+      mainLoop.unload();
+    };
+  }, []);
 
   // Handle keyboard input
   useEffect(() => {
@@ -147,7 +170,7 @@ export default function TypingTest({ params }) {
             updateLeaderboard(newScore);
             return newScore;
           });
-          shotSound.play();
+          sounds.shotSound.play();
         } else {
           // Green light scoring
           if (lastInputChar === slotText[lastCharIndex]) {
@@ -247,27 +270,24 @@ export default function TypingTest({ params }) {
     }
   };
 
-  useEffect(()=>{
-if(isGreen){
-  if (!greenSound.playing()) {
-    greenSound.play();
-   
-  }
-  if (!mainLoop.playing()) {
-    mainLoop.play();
-  }
-
-}
-else{
-  if (!redSound.playing()) {
-    redSound.play();
-  }
-  if (mainLoop.playing()) {
-    mainLoop.stop();
-  }
- 
-}
-  },[isGreen])
+  useEffect(() => {
+    if(isGreen && sounds.greenSound && sounds.mainLoop){
+      if (!sounds.greenSound.playing()) {
+        sounds.greenSound.play();
+      }
+      if (!sounds.mainLoop.playing()) {
+        sounds.mainLoop.play();
+      }
+    }
+    else if (!isGreen && sounds.redSound && sounds.mainLoop){
+      if (!sounds.redSound.playing()) {
+        sounds.redSound.play();
+      }
+      if (sounds.mainLoop.playing()) {
+        sounds.mainLoop.stop();
+      }
+    }
+  }, [isGreen, sounds]);
 
   return (
     <div className="min-h-screen bg-[#323437] text-[#646669] flex flex-col">
