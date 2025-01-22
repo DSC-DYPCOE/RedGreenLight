@@ -5,6 +5,9 @@ import squidgamesAnimation from "../public/squidgames.json";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Circle, Square, Triangle } from "lucide-react";
+import io from "socket.io-client";
+
+const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000");
 
 const LottieComponent = dynamic(() => import("lottie-react").then((mod) => mod.default), {
   ssr: false,
