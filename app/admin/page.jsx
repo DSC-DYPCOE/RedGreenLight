@@ -23,6 +23,7 @@ export default function AdminDashboard({ params }) {
   const fetchSlots = async () => {
     try {
       const response = await axios.get("/api/admin/slot");
+      console.log(response)
       if (response.status === 200) {
         setSlots(response.data.slots);
       }

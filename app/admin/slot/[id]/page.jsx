@@ -42,6 +42,7 @@ export default function SlotInfo({ params }) {
   }, [id]);
 
   const toggleLight = () => {
+    console.log(id)
     socket.emit("toggle-light", { slotId: id });
   };
 
