@@ -1,7 +1,12 @@
 require("dotenv").config(); // Load environment variables
 const io = require("socket.io")(process.env.PORT || 3000, {
   cors: {
-    origin: process.env.URL || "*", // Allow configured URL or all origins as fallback
+    origin: [
+      process.env.URL,
+      "https://redgreenlight.netlify.app",
+      "http://localhost:3000",
+      "http://localhost:3001"
+    ],
     methods: ["GET", "POST"], 
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"]

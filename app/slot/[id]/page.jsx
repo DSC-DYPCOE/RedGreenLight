@@ -132,6 +132,31 @@ export default function TypingTest({ params }) {
                 clearInterval(interval);
                 setIsDisabled(true);
                 setFinish(true);
+                // Update final score when time is over
+                const username = Cookies.get("username");
+                if (username) {
+                  const payload = {
+                    username,
+                    slotId: id,
+                    score: score
+                  };
+                  // Call API to update final score
+                  axios.patch("/api/admin/slot", payload)
+                    .then(() => {
+                      console.log("Final score updated successfully");
+                      // Emit score update through socket
+                      if (socket) {
+                        socket.emit("score-update", {
+                          slotId: id,
+                          username,
+                          score: score
+                        });
+                      }
+                    })
+                    .catch(error => {
+                      console.error("Error updating final score:", error);
+                    });
+                }
                 return 0;
               }
               return prev - 1;
@@ -146,58 +171,101 @@ export default function TypingTest({ params }) {
     };
 
     fetchSlotData();
+  }, [id, score, socket]);
+
+  // Also add final score update when user manually finishes
+  useEffect(() => {
+    if (finish && !timeRemaining) {
+      const username = Cookies.get("username");
+      if (username) {
+        const payload = {
+          username,
+          slotId: id,
+          score: score
+        };
+        // Call API to update final score
+        axios.patch("/api/admin/slot", payload)
+          .then(() => {
+            console.log("Final score updated successfully");
+            // Emit score update through socket
+            if (socket) {
+              socket.emit("score-update", {
+                slotId: id,
+                username,
+                score: score
+              });
+            }
+          })
+          .catch(error => {
+            console.error("Error updating final score:", error);
+          });
+      }
+    }
+  }, [finish, timeRemaining, score, id, socket]);
+
+  // Add useEffect to load saved score from cookie when component mounts
+  useEffect(() => {
+    const savedScore = Cookies.get(`score_${id}`);
+    if (savedScore) {
+      setScore(parseInt(savedScore));
+      // Update leaderboard with saved score
+      updateLeaderboard(parseInt(savedScore));
+    }
   }, [id]);
 
+  // Modify the score update logic to save to cookie
   useEffect(() => {
     if (slotText) {
       const lastInputChar = userInput[userInput.length - 1];
       const lastCharIndex = userInput.length - 1;
       
-      // Only process scoring if:
-      // 1. A character was added (not removed)
-      // 2. The position hasn't been scored yet
-      // 3. We're at a new position (beyond our previous maximum)
       if (lastInputChar && 
           userInput.length > 0 && 
           userInput.length > prevInputLength && 
           !scoredPositions.has(lastCharIndex) &&
-          lastCharIndex >= scoredPositions.size) {  // Only score if we're at a new position
+          lastCharIndex >= scoredPositions.size) {
         
         if (!isGreen) {
-          // Red light penalty
           setScore(prev => {
             const newScore = prev - 5;
             updateLeaderboard(newScore);
+            Cookies.set(`score_${id}`, newScore.toString());
             return newScore;
           });
           sounds.shotSound.play();
         } else {
-          // Green light scoring
-          if (lastInputChar === slotText[lastCharIndex]) {
-            // Correct character during green light
+          const correctChar = slotText[lastCharIndex];
+          if (lastInputChar === correctChar) {
             setScore(prev => {
               const newScore = prev + 1;
               updateLeaderboard(newScore);
+              Cookies.set(`score_${id}`, newScore.toString());
               return newScore;
             });
           } else {
-            // Mistyped character during green light
             setScore(prev => {
               const newScore = prev - 1;
               updateLeaderboard(newScore);
+              Cookies.set(`score_${id}`, newScore.toString());
               return newScore;
             });
           }
         }
         
-        // Mark this position as scored
         setScoredPositions(prev => new Set([...prev, lastCharIndex]));
       }
       
-      // Remove the backspace handling that was clearing scored positions
       setPrevInputLength(userInput.length);
     }
   }, [userInput, slotText, isGreen]);
+
+  // Add cleanup for cookies when the game ends
+  useEffect(() => {
+    if (finish || timeRemaining <= 0) {
+      // Keep the final score in cookie for 24 hours
+      Cookies.set(`score_${id}`, score.toString(), { expires: 1 });
+    }
+  }, [finish, timeRemaining, score, id]);
 
   // Add this function to handle immediate leaderboard updates
   const updateLeaderboard = async (newScore) => {
@@ -232,7 +300,7 @@ export default function TypingTest({ params }) {
       return "Test has ended.";
     }
     const minutes = Math.floor(timeRemaining / 60);
-    const seconds = Math.floor(timeRemaining % 60);
+    const seconds = Math.round(timeRemaining % 60);
     return `Time remaining: ${minutes}m ${seconds}s`;
   };
 
@@ -263,7 +331,7 @@ export default function TypingTest({ params }) {
   const handleLightToggle = (isGreenState) => {
     setIsGreen(isGreenState);
   
-    if (isGreenState) {
+    if (isGreenState && timeRemaining > 0 && !finish) {
       setIsDisabled(false);
     } else {
       setIsDisabled(true);
@@ -310,20 +378,29 @@ export default function TypingTest({ params }) {
 
       {/* Main Content */}
       <main 
-        className="flex-1 flex flex-col items-center justify-center px-4 -mt-20"
+        className={`flex-1 flex flex-col items-center justify-center px-4 -mt-20 ${
+          (finish || timeRemaining <= 0 || isDisabled) ? 'cursor-not-allowed' : ''
+        }`}
         tabIndex={0}
-        onFocus={() => setIsFocused(true)}
+        onFocus={() => !finish && timeRemaining > 0 && setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
       >
         {/* Text Display */}
         <div className="max-w-[1200px] w-full mb-8 text-center relative">
-          {!isFocused && (
+          {(!isFocused && timeRemaining > 0 && !finish) && (
             <div className="absolute inset-0 flex items-center justify-center text-[#646669] text-lg">
               Click here or press any key to focus
             </div>
           )}
+          {(finish || timeRemaining <= 0) && (
+            <div className="absolute inset-0 flex items-center justify-center text-[#ca4754] text-lg">
+              Test has ended. Your final score: {score}
+            </div>
+          )}
           <div 
-            className={`text-3xl font-mono tracking-wide leading-relaxed flex flex-wrap justify-center gap-x-2 ${isFocused ? '' : 'opacity-50'}`}
+            className={`text-3xl font-mono tracking-wide leading-relaxed flex flex-wrap justify-center gap-x-2 ${
+              (isFocused && !finish && timeRemaining > 0) ? '' : 'opacity-50'
+            }`}
           >
             {slotText.split('').map((char, i) => (
               <span 
@@ -356,8 +433,18 @@ export default function TypingTest({ params }) {
             <span className="text-[#d1d0c5]">{score}</span>
           </div>
           <div>
-            <span className={`w-3 h-3 rounded-full inline-block mr-2 ${isGreen ? "bg-[#4CAF50]" : "bg-[#f44336]"}`}></span>
-            <span className="text-[#d1d0c5]">{isGreen ? "Green" : "Red"}</span>
+            <span className={`w-3 h-3 rounded-full inline-block mr-2 ${
+              isGreen && !finish && timeRemaining > 0 ? "bg-[#4CAF50]" : "bg-[#f44336]"
+            }`}></span>
+            <span className="text-[#d1d0c5]">{
+              finish || timeRemaining <= 0 
+                ? "Game Over" 
+                : isGreen ? "Green" : "Red"
+            }</span>
+          </div>
+          <div>
+            <span className="text-[#646669]">time: </span>
+            <span className="text-[#d1d0c5]">{Math.max(0, Math.round(timeRemaining))}s</span>
           </div>
         </div>
 
