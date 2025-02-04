@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { io } from "socket.io-client";
 import axios from "axios";
 import Cookies from "js-cookie";
@@ -28,6 +28,8 @@ export default function TypingTest({ params }) {
     mainLoop: null
   });
   const { id } = use(params);
+  const textDisplayRef = useRef(null);
+  const [scrollPosition, setScrollPosition] = useState(0);
 
   // Initialize socket connection
   useEffect(() => {
@@ -89,6 +91,62 @@ export default function TypingTest({ params }) {
     };
   }, [finish, timeRemaining, isFocused]);
 
+  // Separate timer effect
+  useEffect(() => {
+    let timerInterval;
+    
+    if (startTimeReached && timeRemaining > 0) {
+      timerInterval = setInterval(() => {
+        setTimeRemaining(prev => {
+          const newTime = prev - 1;
+          if (newTime <= 0) {
+            clearInterval(timerInterval);
+            setIsDisabled(true);
+            setFinish(true);
+            
+            // Stop all sounds when timer ends
+            if (sounds.mainLoop?.playing()) sounds.mainLoop.stop();
+            if (sounds.greenSound?.playing()) sounds.greenSound.stop();
+            if (sounds.redSound?.playing()) sounds.redSound.stop();
+
+            // Update final score when time is over
+            const username = Cookies.get("username");
+            if (username) {
+              const payload = {
+                username,
+                slotId: id,
+                score: score
+              };
+              axios.patch("/api/admin/slot", payload)
+                .then(() => {
+                  console.log("Final score updated successfully");
+                  if (socket) {
+                    socket.emit("score-update", {
+                      slotId: id,
+                      username,
+                      score: score
+                    });
+                  }
+                })
+                .catch(error => {
+                  console.error("Error updating final score:", error);
+                });
+            }
+            return 0;
+          }
+          return newTime;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+    };
+  }, [startTimeReached, id, socket, sounds]);
+
+  // Modify the fetchSlotData effect to only set initial time
   useEffect(() => {
     const fetchSlotData = async () => {
       try {
@@ -124,84 +182,13 @@ export default function TypingTest({ params }) {
             setIsDisabled(false);
           }, timeUntilStart * 1000);
         }
-
-        if (timeLeft > 0) {
-          const interval = setInterval(() => {
-            setTimeRemaining((prev) => {
-              if (prev <= 1) {
-                clearInterval(interval);
-                setIsDisabled(true);
-                setFinish(true);
-                // Update final score when time is over
-                const username = Cookies.get("username");
-                if (username) {
-                  const payload = {
-                    username,
-                    slotId: id,
-                    score: score
-                  };
-                  // Call API to update final score
-                  axios.patch("/api/admin/slot", payload)
-                    .then(() => {
-                      console.log("Final score updated successfully");
-                      // Emit score update through socket
-                      if (socket) {
-                        socket.emit("score-update", {
-                          slotId: id,
-                          username,
-                          score: score
-                        });
-                      }
-                    })
-                    .catch(error => {
-                      console.error("Error updating final score:", error);
-                    });
-                }
-                return 0;
-              }
-              return prev - 1;
-            });
-          }, 1000);
-
-          return () => clearInterval(interval);
-        }
       } catch (error) {
         console.error("Failed to fetch slot data:", error);
       }
     };
 
     fetchSlotData();
-  }, [id, score, socket]);
-
-  // Also add final score update when user manually finishes
-  useEffect(() => {
-    if (finish && !timeRemaining) {
-      const username = Cookies.get("username");
-      if (username) {
-        const payload = {
-          username,
-          slotId: id,
-          score: score
-        };
-        // Call API to update final score
-        axios.patch("/api/admin/slot", payload)
-          .then(() => {
-            console.log("Final score updated successfully");
-            // Emit score update through socket
-            if (socket) {
-              socket.emit("score-update", {
-                slotId: id,
-                username,
-                score: score
-              });
-            }
-          })
-          .catch(error => {
-            console.error("Error updating final score:", error);
-          });
-      }
-    }
-  }, [finish, timeRemaining, score, id, socket]);
+  }, [id]);
 
   // Add useEffect to load saved score from cookie when component mounts
   useEffect(() => {
@@ -264,8 +251,19 @@ export default function TypingTest({ params }) {
     if (finish || timeRemaining <= 0) {
       // Keep the final score in cookie for 24 hours
       Cookies.set(`score_${id}`, score.toString(), { expires: 1 });
+      
+      // Stop all sounds when game ends
+      if (sounds.mainLoop && sounds.mainLoop.playing()) {
+        sounds.mainLoop.stop();
+      }
+      if (sounds.greenSound && sounds.greenSound.playing()) {
+        sounds.greenSound.stop();
+      }
+      if (sounds.redSound && sounds.redSound.playing()) {
+        sounds.redSound.stop();
+      }
     }
-  }, [finish, timeRemaining, score, id]);
+  }, [finish, timeRemaining, score, id, sounds]);
 
   // Add this function to handle immediate leaderboard updates
   const updateLeaderboard = async (newScore) => {
@@ -357,6 +355,30 @@ export default function TypingTest({ params }) {
     }
   }, [isGreen, sounds]);
 
+  // Improve the scroll effect
+  useEffect(() => {
+    if (userInput && userInput.length > 0 && textDisplayRef.current) {
+      const container = textDisplayRef.current;
+      const cursorElement = container.querySelector('[data-cursor="true"]');
+      
+      if (cursorElement) {
+        const containerRect = container.getBoundingClientRect();
+        const cursorRect = cursorElement.getBoundingClientRect();
+        
+        // Check if cursor is near bottom of visible area
+        const cursorBottom = cursorRect.top - containerRect.top;
+        const visibleHeight = container.clientHeight;
+        
+        if (cursorBottom > visibleHeight * 0.8) { // Scroll when cursor is in bottom 20%
+          container.scrollTo({
+            top: container.scrollTop + (cursorRect.height * 2),
+            behavior: 'smooth'
+          });
+        }
+      }
+    }
+  }, [userInput]);
+
   return (
     <div className="min-h-screen bg-[#323437] text-[#646669] flex flex-col">
       {/* Top Navigation */}
@@ -368,7 +390,7 @@ export default function TypingTest({ params }) {
           <div className="flex items-center gap-2 text-sm">
             <button className="px-3 py-1 rounded bg-[#2c2e31] text-[#646669]">@ punctuation</button>
             <button className="px-3 py-1 rounded bg-[#2c2e31] text-[#646669]"># numbers</button>
-            <button className="px-3 py-1 rounded bg-[#2c2e31] text-[#e2b714]">time {timeRemaining}s</button>
+            <button className="px-3 py-1 rounded bg-[#2c2e31] text-[#e2b714]">time {Math.max(0, Math.round(timeRemaining))}s</button>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -398,13 +420,20 @@ export default function TypingTest({ params }) {
             </div>
           )}
           <div 
-            className={`text-3xl font-mono tracking-wide leading-relaxed flex flex-wrap justify-center gap-x-2 ${
+            ref={textDisplayRef}
+            className={`text-3xl font-mono h-60 overflow-hidden overflow-y-auto tracking-wide leading-relaxed flex flex-wrap justify-center gap-x-2 ${
               (isFocused && !finish && timeRemaining > 0) ? '' : 'opacity-50'
-            }`}
+            } scroll-smooth`}
+            style={{
+              scrollBehavior: 'smooth',
+              paddingTop: '1rem',
+              paddingBottom: '1rem'
+            }}
           >
             {slotText.split('').map((char, i) => (
               <span 
-                key={i} 
+                key={i}
+                data-cursor={i === userInput.length}
                 className={`${
                   i < userInput.length 
                     ? userInput[i] === char
@@ -465,11 +494,11 @@ export default function TypingTest({ params }) {
       {/* Footer */}
       <footer className="w-full p-4 flex items-center justify-between text-sm">
         <div className="flex items-center gap-4">
-          <span className="text-[#646669]">tab + enter - restart test</span>
-          <span className="text-[#646669]">esc - command line</span>
+          {/* <span className="text-[#646669]">tab + enter - restart test</span>
+          <span className="text-[#646669]">esc - command line</span> */}
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-[#646669]">v1.0.0</span>
+          {/* <span className="text-[#646669]">v1.0.0</span> */}
         </div>
       </footer>
 
@@ -480,6 +509,9 @@ export default function TypingTest({ params }) {
         }
         .animate-blink {
           animation: blink 1s infinite;
+        }
+        .scroll-smooth {
+          scroll-behavior: smooth;
         }
       `}</style>
     </div>

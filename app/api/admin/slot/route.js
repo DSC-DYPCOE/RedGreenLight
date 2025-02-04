@@ -32,7 +32,7 @@ export async function PATCH(req) {
   try {
     await dbConnect();
     const { slotId, username, score } = await req.json();
-    console.log(slotId);
+    console.log(slotId, username, score);
 
     // Update score only if the new score is greater than the existing score
     const updateResult = await Slot.updateOne(

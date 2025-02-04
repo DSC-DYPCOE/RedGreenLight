@@ -60,12 +60,14 @@ const SlotCard = ({ slot, onJoin }) => {
             }`}>
               {status.toUpperCase()}
             </span>
-            <button
-              onClick={() => onJoin(slot.slotId)}
-              className="bg-[#f72585] text-white hover:bg-[#f72585]/90 font-mono px-6 py-2 rounded transition-colors duration-200"
-            >
-              join game
-            </button>
+            {status !== 'completed' && (
+              <button
+                onClick={() => onJoin(slot.slotId)}
+                className="bg-[#f72585] text-white hover:bg-[#f72585]/90 font-mono px-6 py-2 rounded transition-colors duration-200"
+              >
+                join game
+              </button>
+            )}
           </div>
         </div>
       </div>
