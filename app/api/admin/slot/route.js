@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { Slot } from "@/lib/schema.js";
-import dbConnect  from "@/lib/db.js";
+import dbConnect from "@/lib/db.js";
 
 export async function POST(req) {
   try {
-    dbConnect();
+    await dbConnect();
     const { startTime, endTime, players, password } = await req.json();
 
     // Create a new slot with a unique slotId
@@ -16,10 +16,8 @@ export async function POST(req) {
       password,
     });
 
-    // Return the newly created slot as a success response
     return NextResponse.json(slot, { status: 201 });
   } catch (error) {
-    // Handle errors and return a proper error message
     console.log(error);
     return NextResponse.json(
       { error: "Failed to create slot. Please try again." },
@@ -33,6 +31,14 @@ export async function PATCH(req) {
     await dbConnect();
     const { slotId, username, score } = await req.json();
     console.log(slotId, username, score);
+
+    // Skip update if score is zero
+    if (score === 0) {
+      return NextResponse.json(
+        { message: "Score is zero, skipping update" },
+        { status: 200 }
+      );
+    }
 
     // Update score regardless of whether it's higher or lower
     const updateResult = await Slot.updateOne(
@@ -78,17 +84,22 @@ export async function PATCH(req) {
 
 export async function GET(req) {
   try {
-    dbConnect();
+    await dbConnect();
     const slots = await Slot.find({});
+    console.log("Successfully fetched slots:", slots);
     return NextResponse.json({ slots }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch slots" }, { status: 500 });
+    console.error("Detailed error in GET /api/admin/slot:", error);
+    return NextResponse.json({ 
+      error: "Failed to fetch slots",
+      details: error.message 
+    }, { status: 500 });
   }
 }
 
 export async function GET_SLOT(req, params) {
   try {
-    dbConnect();
+    await dbConnect();
     const { slotId } = params;
     const slot = await Slot.findOne({ slotId });
     if (!slot) {

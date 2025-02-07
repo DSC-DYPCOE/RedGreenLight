@@ -183,7 +183,12 @@ export default function TypingTest({ params }) {
           }, timeUntilStart * 1000);
         }
       } catch (error) {
-        console.error("Failed to fetch slot data:", error);
+        console.error("Detailed fetch error:", {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        // Handle error appropriately in the UI
       }
     };
 
