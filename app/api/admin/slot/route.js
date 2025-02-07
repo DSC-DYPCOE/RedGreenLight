@@ -34,11 +34,11 @@ export async function PATCH(req) {
     const { slotId, username, score } = await req.json();
     console.log(slotId, username, score);
 
-    // Update score only if the new score is greater than the existing score
+    // Update score regardless of whether it's higher or lower
     const updateResult = await Slot.updateOne(
       { slotId, "leaderboard.username": username },
       {
-        $max: { "leaderboard.$.score": score }, // Only update if the new score is higher
+        $set: { "leaderboard.$.score": score }, // Update score unconditionally
       }
     );
 
