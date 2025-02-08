@@ -141,7 +141,7 @@ export default function SlotCardsList() {
         <div className="flex items-center gap-4">
           <Link href="/" className="text-[#f72585] font-bold text-xl font-mono flex items-center gap-2">
             <span className="text-2xl">◯</span>
-            RedGreenType
+            TypeToSurvive
           </Link>
         </div>
         <div className="flex items-center gap-2">

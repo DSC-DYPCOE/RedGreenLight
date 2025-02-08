@@ -429,7 +429,7 @@ export default function TypingTest({ params }) {
       <nav className="sticky top-0 w-full p-4 flex items-center justify-between bg-black/20 backdrop-blur-sm z-10">
         <div className="flex items-center gap-4">
           <Link href="/" className="text-[#d1d0c5] font-bold text-xl">
-            RedGreenType
+            TypeToSurvive
           </Link>
           <div className="flex items-center gap-2 text-sm">
             <button className="px-3 py-1 rounded bg-[#2c2e31] text-[#646669]">@ punctuation</button>

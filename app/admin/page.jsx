@@ -61,7 +61,7 @@ export default function AdminDashboard({ params }) {
       <nav className="w-full p-4 flex items-center justify-between border-b border-[#2c2e31]">
         <div className="flex items-center gap-4">
           <Link href="/" className="text-[#d1d0c5] font-bold text-xl font-mono">
-            RedGreenType
+            TypeToSurvive
           </Link>
           <span className="text-[#e2b714] font-mono">admin</span>
         </div>
