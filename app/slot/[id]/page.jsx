@@ -21,6 +21,8 @@ export default function TypingTest({ params }) {
   const [prevInputLength, setPrevInputLength] = useState(0);
   const [scoredPositions, setScoredPositions] = useState(new Set());
   const [socket, setSocket] = useState(null);
+  const [slot, setSlot] = useState({ leaderboard: [] });
+  const [username, setUsername] = useState("");
   const [sounds, setSounds] = useState({
     greenSound: null,
     redSound: null,
@@ -30,6 +32,32 @@ export default function TypingTest({ params }) {
   const { id } = use(params);
   const textDisplayRef = useRef(null);
   const [scrollPosition, setScrollPosition] = useState(0);
+
+  // Add username effect
+  useEffect(() => {
+    const storedUsername = Cookies.get("username");
+    if (storedUsername) {
+      setUsername(storedUsername);
+    }
+  }, []);
+
+  // Add leaderboard update socket listener
+  useEffect(() => {
+    if (socket) {
+      socket.on("leaderboard-update", (data) => {
+        if (data.slotId === id) {
+          setSlot(prevSlot => ({
+            ...prevSlot,
+            leaderboard: data.leaderboard
+          }));
+        }
+      });
+
+      return () => {
+        socket.off("leaderboard-update");
+      };
+    }
+  }, [socket, id]);
 
   // Initialize socket connection
   useEffect(() => {
@@ -151,7 +179,12 @@ export default function TypingTest({ params }) {
     const fetchSlotData = async () => {
       try {
         const response = await axios.get(`/api/slots/${id}`);
-        const { startTime, endTime } = response.data;
+        const { startTime, endTime, leaderboard } = response.data;
+
+        setSlot(prevSlot => ({
+          ...prevSlot,
+          leaderboard: leaderboard || []
+        }));
 
         const currentDate = new Date();
         const [startHour, startMinute] = startTime.split(":").map(Number);
@@ -229,7 +262,7 @@ export default function TypingTest({ params }) {
           const correctChar = slotText[lastCharIndex];
           if (lastInputChar === correctChar) {
             setScore(prev => {
-              const newScore = prev + 1;
+              const newScore = prev + 3;
               updateLeaderboard(newScore);
               Cookies.set(`score_${id}`, newScore.toString());
               return newScore;
@@ -385,9 +418,15 @@ export default function TypingTest({ params }) {
   }, [userInput]);
 
   return (
-    <div className="min-h-screen bg-[#323437] text-[#646669] flex flex-col">
+    <div className={`min-h-screen bg-[#16161a] text-[#646669] flex flex-col relative isolate overflow-hidden ${
+      isGreen && !finish && timeRemaining > 0 
+        ? 'after:fixed after:inset-0 after:bg-[#4CAF50]/5 after:pointer-events-none after:border-[#4CAF50]/60 after:border-4 after:animate-glow before:fixed before:inset-0 before:bg-gradient-to-b before:from-[#4CAF50]/20 before:to-transparent before:pointer-events-none' 
+        : !isGreen && !finish && timeRemaining > 0
+        ? 'after:fixed after:inset-0 after:bg-[#f44336]/5 after:pointer-events-none after:border-[#f44336]/60 after:border-4 after:animate-glow before:fixed before:inset-0 before:bg-gradient-to-b before:from-[#f44336]/20 before:to-transparent before:pointer-events-none'
+        : ''
+    }`}>
       {/* Top Navigation */}
-      <nav className="w-full p-4 flex items-center justify-between">
+      <nav className="sticky top-0 w-full p-4 flex items-center justify-between bg-black/20 backdrop-blur-sm z-10">
         <div className="flex items-center gap-4">
           <Link href="/" className="text-[#d1d0c5] font-bold text-xl">
             RedGreenType
@@ -426,13 +465,15 @@ export default function TypingTest({ params }) {
           )}
           <div 
             ref={textDisplayRef}
-            className={`text-3xl font-mono h-60 overflow-hidden overflow-y-auto tracking-wide leading-relaxed flex flex-wrap justify-center gap-x-2 ${
+            className={`text-3xl font-mono h-60 overflow-hidden overflow-y-auto tracking-wide leading-relaxed flex flex-wrap justify-center ${
               (isFocused && !finish && timeRemaining > 0) ? '' : 'opacity-50'
-            } scroll-smooth`}
+            } scroll-smooth px-4`}
             style={{
               scrollBehavior: 'smooth',
               paddingTop: '1rem',
-              paddingBottom: '1rem'
+              paddingBottom: '1rem',
+              letterSpacing: '0.05em',
+              wordSpacing: '1em'
             }}
           >
             {slotText.split('').map((char, i) => (
@@ -445,7 +486,7 @@ export default function TypingTest({ params }) {
                       ? 'text-[#d1d0c5]' 
                       : 'text-[#ca4754]'
                     : 'text-[#646669]'
-                } ${i === userInput.length ? 'relative' : ''}`}
+                } ${i === userInput.length ? 'relative' : ''} ${char === ' ' ? 'mx-2' : ''}`}
               >
                 {char}
                 {i === userInput.length && isFocused && (
@@ -490,8 +531,32 @@ export default function TypingTest({ params }) {
         )}
 
         {(finish || timeRemaining <= 0) && (
-          <div className="mt-8 text-[#d1d0c5] text-xl font-mono">
-            Test completed! Final score: {score}
+          <div className="mt-8 text-[#d1d0c5] text-xl font-mono flex flex-col items-center">
+            <div className="text-2xl mb-6">Test completed! Final score: {score}</div>
+            <div className="bg-[#1a1b1e] p-6 rounded-lg w-96 max-w-full">
+              <h3 className="text-[#f72585] text-xl font-mono mb-4 flex items-center gap-2">
+                <span className="text-2xl">◯</span>
+                leaderboard
+              </h3>
+              <div className="space-y-2">
+                {slot.leaderboard?.sort((a, b) => b.score - a.score).map((entry, index) => (
+                  <div 
+                    key={index}
+                    className={`flex justify-between items-center p-2 rounded ${
+                      entry.username === username 
+                        ? 'bg-[#f72585]/10 text-[#f72585]' 
+                        : 'hover:bg-[#242528]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#94a1b2] w-6">{index + 1}</span>
+                      <span>{entry.username}</span>
+                    </div>
+                    <span>{entry.score}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </main>
@@ -517,6 +582,19 @@ export default function TypingTest({ params }) {
         }
         .scroll-smooth {
           scroll-behavior: smooth;
+          contain: content;
+        }
+        @keyframes glow {
+          0%, 100% { 
+            opacity: 1;
+          }
+          50% { 
+            opacity: 0.8;
+          }
+        }
+        .animate-glow {
+          animation: glow 2s ease-in-out infinite;
+          contain: paint;
         }
       `}</style>
     </div>
