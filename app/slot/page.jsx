@@ -10,7 +10,49 @@ import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import Link from "next/link";
 
+const LeaderboardPopup = ({ leaderboard, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-[#1a1b1e] p-8 rounded-lg w-96 border border-[#f72585]/20"
+      >
+        <h2 className="text-[#f72585] text-xl font-mono mb-6 flex items-center gap-2">
+          <span className="text-2xl">◯</span>
+          leaderboard
+        </h2>
+        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+          {leaderboard?.map((entry, index) => (
+            <div 
+              key={index}
+              className="flex justify-between items-center p-2 rounded hover:bg-[#242528]"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-[#94a1b2] w-6">{index + 1}</span>
+                <span className="text-[#d1d0c5]">{entry.username}</span>
+              </div>
+              <span className="text-[#f72585]">{entry.score}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={onClose}
+            className="text-[#94a1b2] font-mono hover:text-[#f72585] transition-colors duration-200"
+          >
+            close
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 const SlotCard = ({ slot, onJoin }) => {
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+
   const calculateStatus = () => {
     const currentTime = moment();
     const startTime = moment(slot.startTime, "HH:mm");
@@ -60,17 +102,34 @@ const SlotCard = ({ slot, onJoin }) => {
             }`}>
               {status.toUpperCase()}
             </span>
-            {status !== 'completed' && (
+            {status !== 'completed' ? (
               <button
                 onClick={() => onJoin(slot.slotId)}
                 className="bg-[#f72585] text-white hover:bg-[#f72585]/90 font-mono px-6 py-2 rounded transition-colors duration-200"
               >
                 join game
               </button>
+            ) : (
+              <button
+                onClick={() => setShowLeaderboard(true)}
+                className="bg-[#242528] text-[#f72585] hover:bg-[#2c2e31] font-mono px-6 py-2 rounded transition-colors duration-200 border border-[#f72585]/20"
+              >
+                show leaderboard
+              </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* Leaderboard Popup */}
+      <AnimatePresence>
+        {showLeaderboard && (
+          <LeaderboardPopup 
+            leaderboard={slot.leaderboard} 
+            onClose={() => setShowLeaderboard(false)} 
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

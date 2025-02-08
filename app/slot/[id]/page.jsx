@@ -529,46 +529,13 @@ export default function TypingTest({ params }) {
             Typing is disabled. Please wait {countdown} seconds.
           </div>
         )}
-
-        {(finish || timeRemaining <= 0) && (
-          <div className="mt-8 text-[#d1d0c5] text-xl font-mono flex flex-col items-center">
-            <div className="text-2xl mb-6">Test completed! Final score: {score}</div>
-            <div className="bg-[#1a1b1e] p-6 rounded-lg w-96 max-w-full">
-              <h3 className="text-[#f72585] text-xl font-mono mb-4 flex items-center gap-2">
-                <span className="text-2xl">◯</span>
-                leaderboard
-              </h3>
-              <div className="space-y-2">
-                {slot.leaderboard?.sort((a, b) => b.score - a.score).map((entry, index) => (
-                  <div 
-                    key={index}
-                    className={`flex justify-between items-center p-2 rounded ${
-                      entry.username === username 
-                        ? 'bg-[#f72585]/10 text-[#f72585]' 
-                        : 'hover:bg-[#242528]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#94a1b2] w-6">{index + 1}</span>
-                      <span>{entry.username}</span>
-                    </div>
-                    <span>{entry.score}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </main>
 
       {/* Footer */}
       <footer className="w-full p-4 flex items-center justify-between text-sm">
         <div className="flex items-center gap-4">
-          {/* <span className="text-[#646669]">tab + enter - restart test</span>
-          <span className="text-[#646669]">esc - command line</span> */}
         </div>
         <div className="flex items-center gap-4">
-          {/* <span className="text-[#646669]">v1.0.0</span> */}
         </div>
       </footer>
 
